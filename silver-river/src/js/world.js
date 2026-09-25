@@ -5,6 +5,7 @@
   'use strict';
   const G = window.SilverRiver;
   const PX = G.PX;
+  const U = G.U;
   const WW = 320, WH = 180;
   const Wd = (G.World = {});
   Wd.W = WW;
@@ -640,7 +641,7 @@
     PX.rect(g, 204, 144, 124, 36, '#11152e');
     PX.rect(g, 40, 150, 10, 12, '#f6c86a');
     PX.rect(g, 250, 156, 9, 10, '#e9b458');
-    return { magpies: !!o.magpies, spots: { her: [160, 170], parent: [130, 172] } };
+    return { magpies: !!o.magpies, spots: { her: [160, 170], parent: [130, 172], left: [118, 173], far: [96, 175], right: [226, 175] } };
   };
   S.sky = S.night;
 
@@ -678,6 +679,55 @@
     return p;
   }
 
+  // ---------------------------------------------------------------- the magpie bridge
+  // the main arch spans the Silver River; the second one curves down into the courtyard
+  function makeBridge() {
+    const arch = [], down = [];
+    const A0 = [52, 74], A1 = [268, 74], H = 40;
+    for (let i = 0; i <= 24; i++) {
+      const u = i / 24;
+      arch.push([A0[0] + (A1[0] - A0[0]) * u, A0[1] - Math.sin(u * Math.PI) * H]);
+    }
+    // quadratic curve from the right foot of the arch to the ground in front of her
+    const P0 = A1, C = [300, 138], P2 = [186, 158];
+    for (let i = 1; i <= 13; i++) {
+      const u = i / 13;
+      down.push([(1 - u) * (1 - u) * P0[0] + 2 * (1 - u) * u * C[0] + u * u * P2[0], (1 - u) * (1 - u) * P0[1] + 2 * (1 - u) * u * C[1] + u * u * P2[1]]);
+    }
+    const birds = [];
+    arch.forEach(([x, y], i) => {
+      const left = i < 12;
+      birds.push({ i, x: x - 5, y: y - 1, sx: left ? -20 - Math.random() * 30 : WW + 20 + Math.random() * 30, sy: 10 + Math.random() * 90, d: Math.min(i, 24 - i) * 6 + Math.random() * 8, face: left ? 1 : -1 });
+    });
+    down.forEach(([x, y], j) => {
+      birds.push({ i: 25 + j, x: x - 5, y: y - 1, sx: WW + 20 + Math.random() * 20, sy: 60 + Math.random() * 100, d: 110 + j * 6 + Math.random() * 6, face: -1 });
+    });
+    return { birds, sparks: [], mode: 'hold', t0: 0, path: { arch, down } };
+  }
+  // an 11x3 magpie facing right: long blue tail, black body, white belly and shoulder, black head.
+  // flap: 0 wings up, 1 wings down, 2 perched
+  function drawMagpie(g, x, y, dir, flap, halo) {
+    const px = (dx, dy, c) => {
+      g.fillStyle = c;
+      g.fillRect(dir > 0 ? x + dx : x + 10 - dx, y + dy, 1, 1);
+    };
+    if (halo) {
+      g.fillStyle = 'rgba(190,205,255,0.16)';
+      g.fillRect(x - 1, y - 3, 13, 8);
+    }
+    const K = '#0b0d1f', W = '#f4f6ff', B = '#3f60cc', b = '#2a3f8f', E = '#e8ecff';
+    // tail
+    px(0, 1, b); px(1, 1, B); px(2, 1, B); px(3, 1, b);
+    // body
+    px(4, 1, K); px(5, 1, W); px(6, 1, W); px(7, 1, K); px(8, 1, K);
+    px(5, 2, K); px(6, 2, W); px(7, 2, K);
+    // head and beak
+    px(8, 0, K); px(9, 0, K); px(9, 1, K); px(10, 1, '#1a1d33'); px(9, 0, E);
+    if (flap === 0) { px(5, 0, K); px(4, -1, K); px(3, -2, K); px(6, 0, W); px(5, -1, B); }
+    else if (flap === 1) { px(5, 3, K); px(4, 4, K); px(6, 3, W); px(5, 4, B); }
+    else { px(4, 0, K); px(5, 0, K); px(6, 0, B); px(7, 0, K); }
+  }
+
   class Stage {
     constructor(canvas) {
       this.canvas = canvas;
@@ -703,6 +753,10 @@
       const weather = o.weather || this.defaultWeather();
       this.particles = makeParticles(weather);
       this.weather = weather;
+      this.bridge = null;
+      this.falling = null;
+      this.newStar = null;
+      if (this.bg.info.magpies) this.fx('bridge', 'hold');
       return this.bg.info;
     }
     defaultWeather() {
@@ -716,7 +770,17 @@
       return (this.bg && this.bg.info.spots && this.bg.info.spots[name]) || [160, 150];
     }
     clear() {
+      const gone = this.actors;
       this.actors = [];
+      gone.forEach((a) => this.stopWalk(a));
+    }
+    // cancel a walk; whoever was waiting for the arrival is released
+    stopWalk(a) {
+      const cb = a.onArrive;
+      a.target = null;
+      a.onArrive = null;
+      a.moving = false;
+      if (cb) cb();
     }
     add(a) {
       const actor = Object.assign({ id: 'a' + Math.random().toString(36).slice(2, 7), x: 160, y: 150, anim: 'idle', dir: 1, t: 0, speed: 0.6, visible: true, emote: null, emoteT: 0 }, a);
@@ -727,7 +791,9 @@
       return this.actors.find((a) => a.id === id);
     }
     remove(id) {
+      const gone = this.actors.filter((a) => a.id === id);
       this.actors = this.actors.filter((a) => a.id !== id);
+      gone.forEach((a) => this.stopWalk(a));
     }
     walkTo(actor, x, y) {
       return new Promise((res) => {
@@ -753,6 +819,141 @@
       const x = ((e.clientX - r.left) / r.width) * WW, y = ((e.clientY - r.top) / r.height) * WH;
       const hit = this.actors.slice().reverse().find((a) => a.clickable && Math.abs(a.x - x) < 10 && y > a.y - 34 && y < a.y + 2);
       if (hit) this.onClickActor(hit);
+    }
+    // ---- special effects: fx('bridge', 'build'|'hold'|'dissolve'), fx('fallingStar'), fx('newStar', [x, y])
+    fx(name, arg) {
+      if (name === 'bridge') {
+        if (!this.bridge) this.bridge = makeBridge();
+        const b = this.bridge;
+        b.mode = arg || 'build';
+        b.t0 = this.t;
+        if (b.mode === 'hold') b.birds.forEach((bd) => (bd.d = -999));
+      } else if (name === 'fallingStar') {
+        this.falling = Object.assign({ t0: this.t, from: [300, -8], to: [44, 118] }, arg || {});
+      } else if (name === 'newStar') {
+        this.newStar = { t0: this.t, x: arg ? arg[0] : 160, y: arg ? arg[1] : 18 };
+      } else if (name === 'clear') {
+        this.bridge = this.falling = this.newStar = null;
+      }
+    }
+    bridgePath() {
+      return this.bridge ? this.bridge.path : makeBridge().path;
+    }
+    // walk an actor along a list of points
+    async followPath(actor, pts, onStep) {
+      for (let i = 0; i < pts.length; i++) {
+        if (!this.actors.includes(actor)) return;
+        await this.walkTo(actor, pts[i][0], pts[i][1]);
+        if (onStep) onStep(i / (pts.length - 1));
+      }
+    }
+    drawFx() {
+      const g = this.g, t = this.t;
+      const b = this.bridge;
+      if (b) {
+        const f = t - b.t0;
+        // how settled the bridge is: drives the glow under the birds
+        let glow = b.mode === 'hold' ? 1 : b.mode === 'build' ? U.clamp((f - 150) / 90, 0, 1) : b.mode === 'dissolve' ? U.clamp(1 - f / 70, 0, 1) : 1;
+        if (glow > 0) {
+          const pts = b.path.arch.concat(b.path.down);
+          for (let i = 1; i < pts.length; i++) {
+            const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+            if (i === b.path.arch.length) continue;
+            const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0)));
+            for (let k = 0; k < n; k++) {
+              const x = Math.round(x0 + ((x1 - x0) * k) / n), y = Math.round(y0 + ((y1 - y0) * k) / n);
+              const tw = 0.8 + 0.2 * Math.sin(t / 9 + x / 7);
+              g.fillStyle = `rgba(255,214,140,${0.12 * glow * tw})`;
+              g.fillRect(x - 2, y - 1, 5, 5);
+              g.fillStyle = `rgba(255,232,170,${0.22 * glow * tw})`;
+              g.fillRect(x - 1, y + 1, 3, 2);
+              g.fillStyle = `rgba(255,248,225,${0.7 * glow * tw})`;
+              g.fillRect(x, y + 2, 1, 1);
+            }
+          }
+        }
+        for (const bd of b.birds) {
+          let x, y, flap, dir, alpha = 1, flying = false;
+          const lf = f - bd.d;
+          if (b.mode === 'dissolve') {
+            const k = Math.max(0, f - bd.i * 2);
+            x = bd.x + Math.sin(bd.i * 1.7) * k * 0.35;
+            y = bd.y - k * k * 0.006 - k * 0.2;
+            alpha = U.clamp(1 - k / 90, 0, 1);
+            flap = Math.floor((t + bd.i * 3) / 4) % 2;
+            dir = Math.sin(bd.i * 1.7) >= 0 ? 1 : -1;
+            flying = true;
+            if (alpha > 0 && k > 0 && (t + bd.i) % 7 === 0) b.sparks.push({ x, y, vy: 0.15 + Math.random() * 0.25, life: 90 + Math.random() * 60 });
+          } else if (lf < 0 && b.mode === 'build') {
+            continue;
+          } else {
+            const u = b.mode === 'build' ? U.clamp(lf / 80, 0, 1) : 1;
+            const e = 1 - Math.pow(1 - u, 3);
+            x = bd.sx + (bd.x - bd.sx) * e;
+            y = bd.sy + (bd.y - bd.sy) * e - Math.sin(u * Math.PI) * 10;
+            flap = u < 1 ? Math.floor((t + bd.i * 3) / 5) % 2 : (t + bd.i * 37) % 200 < 10 ? Math.floor(t / 5) % 2 : 2;
+            dir = u < 1 ? (bd.x > bd.sx ? 1 : -1) : bd.face;
+            flying = u < 1;
+            if (u >= 1) y += Math.sin(t / 24 + bd.i) > 0.92 ? -1 : 0;
+          }
+          if (alpha <= 0) continue;
+          g.globalAlpha = alpha;
+          drawMagpie(g, Math.round(x), Math.round(y), dir, flap, flying);
+          g.globalAlpha = 1;
+        }
+        // falling sparkles when the bridge dissolves
+        b.sparks = b.sparks.filter((p) => (p.life -= 1) > 0 && p.y < WH);
+        for (const p of b.sparks) {
+          p.y += p.vy;
+          p.x += Math.sin((p.life + p.y) / 12) * 0.15;
+          const on = Math.sin(p.life / 3) > -0.3;
+          if (on) {
+            PX.dot(g, p.x, p.y, p.life > 40 ? '#fff4c8' : '#c9d2ff');
+            g.fillStyle = 'rgba(255,240,190,0.3)';
+            g.fillRect(Math.round(p.x) - 1, Math.round(p.y), 3, 1);
+            g.fillRect(Math.round(p.x), Math.round(p.y) - 1, 1, 3);
+          }
+        }
+      }
+      // a star falling into the courtyard
+      const fl = this.falling;
+      if (fl) {
+        const f = t - fl.t0, dur = 70;
+        if (f <= dur) {
+          const u = f / dur, e = u * u;
+          const x = fl.from[0] + (fl.to[0] - fl.from[0]) * e, y = fl.from[1] + (fl.to[1] - fl.from[1]) * e;
+          const dx = fl.to[0] - fl.from[0], dy = fl.to[1] - fl.from[1], len = Math.hypot(dx, dy);
+          for (let k = 0; k < 26; k++) {
+            const tx = x - (dx / len) * k * (0.6 + u), ty = y - (dy / len) * k * (0.6 + u);
+            PX.dot(g, tx, ty, k < 3 ? '#ffffff' : k < 9 ? '#fff0b0' : k < 17 ? '#c9d2ff' : '#6f7ab8');
+          }
+          g.fillStyle = 'rgba(255,248,210,0.5)';
+          g.fillRect(Math.round(x) - 2, Math.round(y) - 1, 5, 3);
+          g.fillRect(Math.round(x) - 1, Math.round(y) - 2, 3, 5);
+        } else if (f <= dur + 40) {
+          const k = (f - dur) / 40;
+          g.fillStyle = `rgba(255,250,225,${0.7 * (1 - k)})`;
+          const r = Math.round(4 + k * 40);
+          for (let yy = -r; yy <= r; yy++) {
+            const w = Math.round(Math.sqrt(r * r - yy * yy));
+            g.fillRect(fl.to[0] - w, fl.to[1] + yy, w * 2 + 1, 1);
+          }
+        } else this.falling = null;
+      }
+      // a new star in the sky
+      const ns = this.newStar;
+      if (ns) {
+        const f = t - ns.t0;
+        const grow = U.clamp(f / 60, 0, 1);
+        const arm = Math.round((2 + Math.sin(t / 10) * 1.2) * grow + (f < 60 ? (1 - grow) * 6 : 0));
+        g.fillStyle = `rgba(255,244,200,${0.25 * grow})`;
+        g.fillRect(ns.x - 3, ns.y - 3, 7, 7);
+        g.fillStyle = '#fffbe8';
+        g.fillRect(ns.x - arm, ns.y, arm * 2 + 1, 1);
+        g.fillRect(ns.x, ns.y - arm, 1, arm * 2 + 1);
+        g.fillStyle = '#ffffff';
+        g.fillRect(ns.x - 1, ns.y - 1, 3, 3);
+      }
     }
     update() {
       this.t++;
@@ -812,6 +1013,7 @@
       pal = a.pal;
       const sw = rows[0].length, sh = rows.length;
       const x = Math.round(a.x - sw / 2), y = Math.round(a.y - sh);
+      g.globalAlpha = a.alpha == null ? 1 : U.clamp(a.alpha, 0, 1);
       // shadow
       g.fillStyle = 'rgba(40,20,40,0.22)';
       g.fillRect(x + Math.round(sw * 0.2), y + sh - 1, Math.round(sw * 0.6), 2);
@@ -820,6 +1022,7 @@
         const ps = G.Sprites.PROPS[p.name];
         if (ps) PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, flip ? x + sw - p.x - ps[0].length : x + p.x, y + p.y, flip);
       });
+      g.globalAlpha = 1;
       if (a.emote && a.emoteT > 0) {
         const ps = G.Sprites.PROPS[a.emote];
         if (ps) PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, x + 10, y - 8 - Math.round(Math.sin(this.t / 8)), false);
@@ -864,15 +1067,8 @@
           }
         }
       }
-      // magpie bridge
-      if (info.magpies) {
-        for (let i = 0; i < 18; i++) {
-          const x = 70 + i * 10, y = 60 - Math.round(Math.sin((i / 17) * Math.PI) * 24) + (Math.floor(t / 10 + i) % 2);
-          PX.rect(g, x, y, 4, 2, '#11152e');
-          PX.dot(g, x + 1, y - 1 + (Math.floor(t / 6 + i) % 2) * 2, '#e8ecf8');
-          PX.dot(g, x + 4, y, '#11152e');
-        }
-      }
+      // magpie bridge, falling star, new star
+      this.drawFx();
       // actors sorted by depth
       this.actors.filter((a) => a.visible).sort((a, b) => a.y - b.y).forEach((a) => this.drawActor(a));
       // particles

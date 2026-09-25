@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const ROOT = path.join(__dirname, '..', 'src', 'js');
-const files = ['core.js', 'data.js', 'npcs.js', 'mind.js', 'sim.js', 'endings.js', 'events.js', 'events2.js', 'talk.js'];
+const files = ['core.js', 'data.js', 'npcs.js', 'mind.js', 'sim.js', 'endings.js', 'events.js', 'events2.js', 'town.js', 'talk.js'];
 const sandbox = { window: {}, console, setTimeout, clearTimeout, Math, JSON, Date, CSS: { escape: (x) => x } };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
@@ -57,7 +57,7 @@ function planFor(s, policy) {
   }
   if (s.flags.autonomy || s.age >= 17) plan[2] = 'free';
   // keep within budget: swap expensive lessons for work
-  while (Sim.planCost(s, plan) > s.gold) {
+  while (Sim.shortfall(s, plan) > 0) {
     const i = plan.findIndex((id) => Sim.cost(s, id) > 0);
     if (i < 0) break;
     plan[i] = 'tea';
@@ -80,6 +80,14 @@ async function game(policy) {
     if (s.turn === 0) await run(G.Events.find((e) => e.id === 'first_morning'));
     else for (const e of Sim.pickEvents(s, 'start', 1)) if (e.priority || U.chance(0.55)) await run(e);
     s.wish = M.wish(s, Sim.available(s));
+    // the town: news and visitors must always come out as clean text
+    s.phase = 'plan';
+    const news = G.Town.news(s);
+    if (!news || /\{\w+\}/.test(news)) throw new Error('bad news: ' + news);
+    const v = G.Town.pickVisitor(s);
+    if (v) for (const [, t] of v.lines) if (!t || /\{\w+\}|undefined|\[object/.test(t)) throw new Error('bad visit line: ' + v.id + ' ' + t);
+    if (v) visitors[v.id] = (visitors[v.id] || 0) + 1;
+    s.phase = 'run';
     s.focus = policy === 'harsh' ? 'work' : policy === 'caring' ? 'family' : U.pick(['balanced', 'balanced', 'work', 'family']);
     const talks = s.focus === 'family' ? 2 : 1;
     for (let k = 0; k < talks; k++) if (Math.random() < (policy === 'harsh' ? 0.2 : 0.8)) await T.run(U.pick(T.topics(s)).id, ctx());
@@ -119,6 +127,7 @@ async function game(policy) {
     for (const k of D.STAT_IDS) if (!(s.stats[k] >= 0 && s.stats[k] <= 100)) throw new Error('stat out of range ' + k + '=' + s.stats[k]);
     if (!(s.bond >= 0 && s.bond <= 100)) throw new Error('bond ' + s.bond);
     if (Number.isNaN(s.stress) || Number.isNaN(s.gold)) throw new Error('NaN');
+    if (s.gold < 0) throw new Error('negative gold ' + s.gold);
   }
   await T.finale(ctx());
   const star = !s.finale.stays;
@@ -128,6 +137,7 @@ async function game(policy) {
   return { s, career };
 }
 
+const visitors = {};
 (async () => {
   const counts = {};
   let errors = 0;
@@ -147,5 +157,6 @@ async function game(policy) {
   console.log('avg bond', (agg.bond / ok).toFixed(1), '· gold', (agg.gold / ok).toFixed(0), '· stress', (agg.stress / ok).toFixed(1), '· best stat', (agg.top / ok).toFixed(1), '· events seen', (agg.events / ok).toFixed(1), '· memories', (agg.mem / ok).toFixed(1), '· photos', (agg.album / ok).toFixed(1));
   console.log('avg stress over seasons', (agg.avgStress / ok).toFixed(1), '· seasons at 70+ stress', (agg.hot / ok).toFixed(1), '· lowest bond', (agg.minBond / ok).toFixed(1));
   Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log(String(v).padStart(4), k));
+  console.log('courtyard visitors:', Object.entries(visitors).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + v).join(', '));
   if (errors) process.exitCode = 1;
 })();

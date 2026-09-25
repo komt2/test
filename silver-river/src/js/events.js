@@ -20,6 +20,7 @@
       await g.scene('home', { tod: 'night', season: 'summer', noHer: true });
       await g.nar('It is the night of Qixi. Once a year, magpies build a bridge across the Silver River so the Weaver Girl and the Cowherd can meet.');
       await g.nar('You sit alone in your courtyard with a cup of cooling tea, watching the sky. One of the stars begins to fall.');
+      g.fx('fallingStar');
       await g.nar('It grows brighter, and brighter, and lands in your peach tree with a sound like a temple bell.');
       g.io.herAppear && (await g.io.herAppear('sit'));
       await g.nar('In the glow sits a little girl. Her hair shines like spun starlight, and she is holding a golden star-shaped hairpin in both hands.');

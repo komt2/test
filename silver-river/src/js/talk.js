@@ -492,10 +492,45 @@
   // ---------------------------------------------------------------- the finale on her eighteenth Qixi
   T.finale = async function (g) {
     const s = g.s;
-    await g.scene('night', { magpies: true });
-    await g.nar('Her eighteenth Qixi. The sky is so full of stars it almost hums.');
-    await g.nar('And then the magpies come: thousands of them, wing to wing, building a bridge across the Silver River. A second bridge follows, curving down toward your courtyard.');
+    await g.scene('night', {});
+    await g.nar('Her eighteenth Qixi. The whole town is out on the rooftops tonight, and the sky is so full of stars it almost hums.');
+    // the friends she made come to see her
+    const came = [];
+    if (s.friends.mei >= 35) came.push('mei');
+    if (s.flags.tao_love || s.flags.tao_crush || s.friends.tao >= 40) came.push('tao');
+    if ((s.flags.wanyin_friend || s.friends.wanyin >= 40) && came.length < 2) came.push('wanyin');
+    const SPOT = ['left', 'far'];
+    came.forEach((id, i) => g.npc(id, SPOT[i]));
+    const HELLO = {
+      mei: 'We came to watch the magpies. And you. Mostly you. Okay, only you.',
+      tao: 'I-I brought mooncakes. Is that... is that right, for a night like this? I didn\'t know what you bring.',
+      wanyin: 'I am only here because your courtyard has the best view. Obviously.',
+    };
+    if (came.length) {
+      await g.nar(came.length === 1 ? `${G.NPC[came[0]].name} is there, of course.` : `${G.NPC[came[0]].name} is there, of course, and ${G.NPC[came[1]].name}, pretending to just be passing by.`);
+      await g.say(came[0], HELLO[came[0]]);
+    }
+    // she remembers
+    const good = s.memories.filter((m) => m.val > 0 && m.text && m.id !== 'arrival').sort((a, b) => b.weight - a.weight || b.turn - a.turn);
+    const hurt = s.memories.filter((m) => m.val < 0 && m.weight >= 6 && m.text).sort((a, b) => b.weight - a.weight)[0];
+    const phrase = (m) => m.text.replace(/\.$/, '');
+    g.anim('sit');
+    await g.her('calm', { _: 'I keep thinking about everything today.', sassy: 'Okay. I\'m going to be sentimental for exactly one minute. Don\'t make it weird.', dreamy: 'Everything today felt like it was happening twice. Once now, and once in memory.' });
+    if (good[0]) await g.her('happy', /^[A-Z]/.test(good[0].text) ? phrase(good[0]) + '.' : 'Do you remember ' + phrase(good[0]) + '?');
+    if (good[1]) await g.her('joy', /^[A-Z]/.test(good[1].text) ? phrase(good[1]) + '.' : 'And ' + phrase(good[1]) + '.');
+    if (good[2]) await g.her('teary', /^[A-Z]/.test(good[2].text) ? phrase(good[2]) + '. I remember all of it.' : 'And ' + phrase(good[2]) + '. I remember all of it.');
+    if (hurt && s.bond < 55) await g.her('sad', 'I remember ' + phrase(hurt) + ', too.');
+    g.anim('idle');
+    // the magpies come
+    g.fx('bridge', 'build');
+    if (G.Audio) G.Audio.sfx('bell');
+    await g.nar('And then the magpies come: thousands of them, wing to wing, building a bridge across the Silver River.');
+    await g.nar('A second bridge follows, curving down, down, until it touches the stones of your courtyard.');
     await g.say('voice', 'Little thread. It is time. The river remembers you. Will you come home?');
+    if (came.includes('mei')) {
+      g.npcEmote('mei', 'bang');
+      await g.say('mei', s.name + '... you\'re not going to go. Are you?');
+    }
     await g.her('worried', g.P + '...');
     const bondWord = s.bond >= 70 ? 'love' : s.bond >= 40 ? 'teary' : 'sad';
     await g.her(bondWord, {
@@ -516,11 +551,32 @@
         sassy: 'Thanks, but no thanks. I have a whole life down here. And a parent who can\'t cook without me.',
         dreamy: 'The river will still be there. It\'s just the sky. I can visit it every night.',
       });
-      await g.nar('The magpie bridge shimmers, and slowly, gently, dissolves into falling stars.');
+      g.fx('bridge', 'dissolve');
+      await g.nar('The magpie bridge shimmers, and slowly, gently, comes apart into falling stars.');
+      if (came.length) {
+        g.anim('cheer');
+        came.forEach((id) => g.npcEmote(id, 'heart'));
+        await g.say(came[0], { mei: 'She\'s staying! She\'s STAYING! Everybody, she\'s staying!', tao: 'You\'re staying! I mean. Good. That\'s good. I have to go tell my father. And everyone.', wanyin: 'Well. Obviously. Where else would you find a rival worth having?' }[came[0]]);
+      }
+      await g.her('joy', { _: 'Come on, ' + g.P + '. Let\'s go home.', sassy: 'Right. Now can we please eat? Cosmic decisions make me starving.' });
     } else {
-      await g.nar('She holds you for a long time. Then she steps onto the bridge of wings.');
+      await g.nar('She holds you for a long time.');
+      const BYE = {
+        mei: 'Write to me. I don\'t care how. Tie letters to the magpies. Promise!',
+        tao: 'I\'ll... I\'ll save you the first batch. Every year. Just in case.',
+        wanyin: 'Don\'t you dare become the brightest star up there without me watching.',
+      };
+      for (const id of came) {
+        g.npcEmote(id, 'drop');
+        await g.say(id, BYE[id]);
+      }
       await g.her('cry', res.bridge ? 'I\'ll come back, ' + g.P + '. Every Qixi. Like the Weaver Girl. Wait for me.' : 'Thank you for everything. Look up sometimes.');
+      await g.fx('ascend');
+      g.fx('newStar', [160, 18]);
+      await g.wait(900);
       await g.nar('The bridge carries her up into the Silver River, and one new star begins to shine.');
+      g.fx('bridge', 'dissolve');
+      await g.nar(res.bridge ? 'The magpies scatter into the night, calling to each other. They will be back next year. So will she.' : 'The magpies scatter into the night. The courtyard is very quiet.');
     }
   };
 })();

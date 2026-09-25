@@ -104,6 +104,17 @@
     return c;
   };
   Sim.planCost = (s, plan) => plan.reduce((t, id) => t + (id ? Math.max(0, Sim.cost(s, id)) : 0), 0);
+  Sim.planPay = (s, plan) => plan.reduce((t, id) => t + (id && id !== 'free' ? Math.max(0, -Sim.cost(s, id)) : 0), 0);
+  // lessons are paid in the month they happen, so work earlier in the season can pay for lessons later on
+  Sim.shortfall = function (s, plan) {
+    let g = s.gold, short = 0;
+    for (const id of plan) {
+      if (!id || id === 'free') continue;
+      g -= Sim.cost(s, id);
+      if (g < 0) short = Math.max(short, -g);
+    }
+    return short;
+  };
 
   // ---------------------------------------------------------------- one month of an activity
   Sim.doMonth = function (s, id, opts = {}) {
@@ -204,7 +215,7 @@
   function apply(s, res) {
     Object.entries(res.gains).forEach(([k, v]) => (s.stats[k] = U.clamp(s.stats[k] + v, 0, 100)));
     s.stress = U.clamp(s.stress + res.stress, 0, 100);
-    s.gold += res.gold;
+    s.gold = Math.max(0, s.gold + res.gold);
     if (res.gold > 0) s.earned += res.gold;
     if (res.star) s.star += res.star;
   }
@@ -322,6 +333,8 @@
       npc: (id, where) => io.npc && io.npc(id, where),
       clearNpcs: () => io.clearNpcs && io.clearNpcs(),
       emote: (name) => io.emote && io.emote(name),
+      fx: (name, arg) => (io.fx ? io.fx(name, arg) : Promise.resolve()),
+      npcEmote: (id, name) => io.npcEmote && io.npcEmote(id, name),
       wait: (ms) => (io.wait ? io.wait(ms) : Promise.resolve()),
       input: (label, def) => (io.input ? io.input(label, def) : Promise.resolve(def)),
       minigame: (kind, opts) => (io.minigame ? io.minigame(kind, opts) : Promise.resolve({ win: U.chance(0.5), score: 0, skipped: true })),
@@ -342,8 +355,11 @@
       need: (k, d) => M.need(s, k, d),
       feel: (k, a) => M.feel(s, k, a),
       gold(d) {
-        s.gold += d;
-        io.toast && io.toast({ kind: 'gold', d });
+        // the family scrapes by: a cost never takes you below zero
+        const before = s.gold;
+        s.gold = Math.max(0, s.gold + d);
+        const eff = s.gold - before;
+        if (eff) io.toast && io.toast({ kind: 'gold', d: eff });
       },
       trait: (k, d) => (s.traits[k] = U.clamp(s.traits[k] + d, -100, 100)),
       parent: (w, c) => M.parent(s, w, c),

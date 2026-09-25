@@ -331,13 +331,16 @@
     } else if (t.kind === 'photo') {
       text = '▣ Added to the album: ' + t.text;
       cls = 'learn';
+    } else if (t.kind === 'town') {
+      text = '☖ Around town: ' + t.text;
+      cls = 'town';
     }
     if (!text) return;
     const el = document.createElement('div');
     el.className = 'toast ' + cls;
     el.textContent = text;
     box.appendChild(el);
-    setTimeout(() => el.remove(), 2900);
+    setTimeout(() => el.remove(), cls === 'town' ? 8100 : 2900);
     while (box.children.length > 5) box.firstChild.remove();
   };
   UI.photo = function (p) {
@@ -397,7 +400,8 @@
       pips.push(`<span class="pip ${cls} ${t % 4 === 3 ? 'qixi' : ''}" title="${D.SEASON_NAME[D.SEASONS[t % 4]]}, year ${Math.floor(t / 4) + 1}"></span>`);
     }
     const left = s.turns - s.turn;
-    el.innerHTML = `<div class="timeline-label">${left <= 1 ? 'Her eighteenth Qixi is coming' : left + ' seasons until her eighteenth Qixi'}</div><div class="timeline">${pips.join('')}<span class="end">18</span></div><div class="minis">${D.STATS.map((st) => `<span class="mini" style="--c:${st.color}" title="${st.name}: ${s.stats[st.id]}"><span class="gl">${st.glyph}</span><span class="v">${s.stats[st.id]}</span></span>`).join('')}</div>`;
+    const news = G.Town ? G.Town.news(s) : '';
+    el.innerHTML = `<div class="timeline-label">${s.phase === 'finale' ? 'Tonight is her eighteenth Qixi' : left <= 1 ? 'Her eighteenth Qixi is coming' : left + ' seasons until her eighteenth Qixi'}</div><div class="timeline">${pips.join('')}<span class="end">18</span></div><div class="minis">${D.STATS.map((st) => `<span class="mini" style="--c:${st.color}" title="${st.name}: ${s.stats[st.id]}"><span class="gl">${st.glyph}</span><span class="v">${s.stats[st.id]}</span></span>`).join('')}</div>${news ? `<div class="town"><span class="tag">Around town</span>${esc(news)}</div>` : ''}`;
   };
 
   // ================================================================ HUD
@@ -405,9 +409,9 @@
     UI.status(s);
     const sea = D.SEASONS[s.turn % 4];
     const mood = M.mood(s);
-    const intro = s.phase === 'intro';
+    const intro = s.phase === 'intro' || s.phase === 'finale';
     $('#hud').innerHTML = `
-      <div class="when"><span class="zh">${intro ? '夕' : D.SEASON_ZH[sea]}</span>${intro ? 'Qixi night' : D.SEASON_NAME[sea] + ' · Year ' + (Math.floor(s.turn / 4) + 1)}</div>
+      <div class="when"><span class="zh">${intro ? '夕' : D.SEASON_ZH[sea]}</span>${s.phase === 'finale' ? 'Her eighteenth Qixi' : intro ? 'Qixi night' : D.SEASON_NAME[sea] + ' · Year ' + (Math.floor(s.turn / 4) + 1)}</div>
       <div class="who">${esc(s.name)}, ${s.age} · ${M.MOOD_WORDS[mood.label]}</div>
       <div class="spacer"></div>
       <div class="meter" title="Bond">${icon('heart')}<span class="bar"><i style="width:${s.bond}%;--c:#e46a78"></i></span></div>

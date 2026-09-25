@@ -31,6 +31,7 @@
     npc: (id, w) => UI.npc(id, w),
     clearNpcs: () => UI.clearNpcs(),
     emote: (n) => UI.herActor && UI.stage.emote(UI.herActor, n),
+    npcEmote: (id, n) => UI.npcActors[id] && UI.stage.emote(UI.npcActors[id], n, 2.6),
     anim: (n) => UI.herAnim(n),
     herAnim: (n) => UI.herAnim(n),
     herAppear: async (anim) => {
@@ -42,6 +43,18 @@
     photo: (p) => UI.photo(p),
     wait: (ms) => U.wait(ms),
     minigame: (k, o) => App.minigame(k, o),
+    fx: async (name, arg) => {
+      const st = UI.stage;
+      if (name !== 'ascend') return st.fx(name, arg);
+      // she climbs the second bridge, fading into the sky
+      const her = UI.herActor;
+      if (!her) return;
+      const { arch, down } = st.bridgePath();
+      const pts = [[190, 162]].concat(down.slice(0, -1).reverse().map(([x, y]) => [x, y + 1]), arch.slice(12).reverse().map(([x, y]) => [x, y + 1]));
+      her.speed = 0.55;
+      await st.followPath(her, pts, (u) => (her.alpha = 1 - u * 0.9));
+      her.alpha = 0;
+    },
   };
   const ctx = (log) => Sim.ctx(s, io, { log });
 
@@ -309,6 +322,11 @@
     }
     await home();
     UI.hud(s);
+    if (s.newsTurn !== s.turn) {
+      s.newsTurn = s.turn;
+      const news = G.Town.news(s);
+      if (news && getComputedStyle($('#status')).display === 'none') setTimeout(() => UI.toast({ kind: 'town', text: news }), 1200);
+    }
     const plan = await planning();
     if (App.aborted) return;
     s.phase = 'run';
@@ -505,8 +523,7 @@
           wardrobe(render);
         },
         begin() {
-          const cost = Sim.planCost(s, P.acts);
-          if (P.acts.some((x) => !x) || cost > s.gold) return;
+          if (P.acts.some((x) => !x) || Sim.shortfall(s, P.acts) > 0) return;
           G.Audio.sfx('confirm');
           resolve(P);
         },
@@ -553,6 +570,9 @@
       return `<button class="act" type="button" data-act="${a.id}" ${ok && P.sel >= 0 ? '' : 'disabled'} title="${esc(why || '')}">${wish && wish.id === a.id ? '<span class="wishmark">★ Her wish</span>' : ''}${affMark(a.id)}<span class="top">${icon(a.icon)}<span class="nm">${esc(a.name)}</span></span><span class="gains">${gains || '<span class="g">Rest</span>'}</span><span class="meta"><span class="cost ${cost < 0 ? 'earn' : ''}">${cost > 0 ? cost + ' coins' : cost < 0 ? 'earns ' + -cost : a.stress < 0 ? 'free' : 'free'}</span><span>${why ? esc(why) : a.stress > 0 ? 'Stress +' + a.stress : 'Stress ' + a.stress}</span></span></button>`;
     }).join('');
     const cost = Sim.planCost(s, P.acts);
+    const pay = Sim.planPay(s, P.acts);
+    const short = Sim.shortfall(s, P.acts);
+    const income = D.PARENTS[s.parent.bg].income + (s.focus === 'work' ? 90 : s.focus === 'family' ? -40 : 0);
     const full = P.acts.every((x) => x);
     const wishText = wish ? wish.text : M.pick(s, { _: 'I\'m happy with whatever you plan, ' + M.addr(s) + '!', sassy: 'Surprise me. But not with etiquette.', soft: 'Whatever you think is best...', dreamy: 'I wonder what this season will bring.', earnest: 'I\'m ready to work hard this season.' });
     root.innerHTML = `
@@ -568,8 +588,8 @@
         <button class="btn btn-ghost" type="button" data-do="wardrobe">${icon('robe')}Clothes</button>
       </div>
       <div class="focus" role="group" aria-label="Your own season">${[['balanced', 'Balanced'], ['work', 'Work extra (+90)'], ['family', 'Family time (−40)']].map(([k, n]) => `<button type="button" data-focus="${k}" aria-pressed="${s.focus === k}">${n}</button>`).join('')}</div>
-      <div class="plan-go"><div class="sum"><span>Lessons cost ${cost} · you'll earn about ${D.PARENTS[s.parent.bg].income + (s.focus === 'work' ? 90 : s.focus === 'family' ? -40 : 0)}</span>${cost > s.gold ? '<span class="warn">Not enough coins</span>' : ''}</div>
-      <button class="btn btn-big" type="button" data-do="begin" ${full && cost <= s.gold ? '' : 'disabled'}>${full ? 'Begin the season' : 'Plan all three months'}</button></div>`;
+      <div class="plan-go"><div class="sum"><span>Lessons −${cost}${pay ? ' · her work +' + pay : ''} · your income +${income} at season's end</span>${short ? `<span class="warn">${short} coins short${pay ? ': put work before lessons' : ''}</span>` : ''}</div>
+      <button class="btn btn-big" type="button" data-do="begin" ${full && !short ? '' : 'disabled'}>${full ? 'Begin the season' : 'Plan all three months'}</button></div>`;
     const wc = $('#wish-port');
     wc.getContext('2d').drawImage(G.Portrait.render(UI.herPortraitOpts(s, P.face || M.restingExpr(s))), 0, 0);
     root.querySelectorAll('[data-slot]').forEach((b) => (b.onclick = () => h.slot(+b.dataset.slot)));
@@ -615,10 +635,29 @@
   }
 
   // ================================================================ courtyard life
-  let lifeTimer = null;
+  let lifeTimer = null, visitTimer = null, visiting = false;
   function stopCourtyard() {
     clearInterval(lifeTimer);
+    clearTimeout(visitTimer);
     lifeTimer = null;
+    visitTimer = null;
+  }
+  // now and then someone drops by while you are planning
+  function scheduleVisit() {
+    if (!s || s.phase !== 'plan' || s.visitTurn === s.turn) return;
+    visitTimer = setTimeout(async () => {
+      if (!s || s.phase !== 'plan' || App.screen !== 'game' || !UI.dlg.hidden || UI.sheetOpen || !UI.herActor || visiting) return scheduleVisit();
+      s.visitTurn = s.turn;
+      if (Math.random() > 0.7) return;
+      const v = G.Town.pickVisitor(s);
+      if (!v) return;
+      visiting = true;
+      try {
+        await G.Town.playVisit(s, v, UI);
+      } finally {
+        visiting = false;
+      }
+    }, 3500 + Math.random() * 5000);
   }
   function courtyardLife() {
     stopCourtyard();
@@ -628,9 +667,10 @@
     if (s.flags.pet) {
       st.add({ id: 'cat', kind: 'cat', x: 90, y: 158, anim: 'idle', pal: G.Sprites.CAT_PAL, cfg: { cat: true }, clickable: true, speed: 0.35 });
     }
+    scheduleVisit();
     let t = 0;
     lifeTimer = setInterval(() => {
-      if (App.screen !== 'game' || !UI.dlg.hidden || UI.sheetOpen) return;
+      if (App.screen !== 'game' || !UI.dlg.hidden || UI.sheetOpen || visiting) return;
       t++;
       const a = UI.herActor;
       if (!a || a.target) return;
@@ -670,6 +710,12 @@
       idle: [],
     };
     const arr = L[what] || [];
+    // what's on her mind: something that happened recently
+    const recent = s.memories.filter((m) => m.turn >= s.turn - 2 && m.weight >= 5 && m.text && !/^[A-Z]/.test(m.text));
+    if (recent.length && Math.random() < 0.18) {
+      const m = U.pick(recent);
+      return m.val < 0 ? M.pick(s, { _: '...I\'m still thinking about ' + m.text + '.', sassy: 'Not that I\'m still mad about ' + m.text + '. I\'m not. Totally not.' }) : M.pick(s, { _: 'Hehe... ' + m.text + '...', soft: '(She smiles to herself, thinking about ' + m.text + '.)', dreamy: 'I keep replaying ' + m.text + ' in my head.' });
+    }
     if (s.flags.pet && Math.random() < 0.2) return s.flags.pet + ', come back here!';
     if (s.stress > 75 && Math.random() < 0.3) return 'So tired... ' + P + '...';
     return arr.length ? U.pick(arr) : null;
@@ -749,10 +795,12 @@
   async function finale() {
     stopCourtyard();
     G.Audio.setMood('night');
+    s.age = 18;
+    s.phase = 'finale';
+    UI.hud(s);
     if (!s.finale) {
       await runEvent({ id: 'finale', run: (g) => T.finale(g) });
     }
-    s.age = 18;
     const star = !s.finale.stays;
     const career = star ? (s.finale.bridge ? E.STAR_BRIDGE : E.STAR) : E.career(s);
     s.endingId = career.id;
