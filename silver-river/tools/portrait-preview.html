@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Silver River portrait preview</title>
+<style>body{margin:0;background:#2a2238;font:12px monospace;color:#eee}.row{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.cell{background:#e8d9b0;padding:6px;border-radius:4px;text-align:center;color:#3a2a2a}.cell canvas{width:256px;height:256px;image-rendering:pixelated;display:block}</style></head><body>
+<!-- Dev tool: ?mode=ages|expr|styles|hair (&age=13&style=wavy&hair=gold&scale=4) -->
+<div class="row" id="out"></div>
+<script src="../src/js/core.js"></script>
+<script src="../src/js/pixel.js"></script>
+<script src="../src/js/portrait.js"></script>
+<script>
+const P = SilverRiver.Portrait, q = new URLSearchParams(location.search);
+const mode = q.get('mode') || 'ages', scale = +(q.get('scale') || 4);
+const outfit = { jacket: '#f7c6d4', collar: '#d85b82', inner: '#fffaf7', skirt: '#9fd6bf', bow: '#e0607e' };
+const base = { hair: q.get('hair') || 'gold', eyes: q.get('eyes') || 'blossom', skin: q.get('skin') || 'fair', style: q.get('style') || 'wavy', age: +(q.get('age') || 13), expr: q.get('expr') || 'neutral', outfit };
+let list = [];
+if (mode === 'ages') list = [10, 12, 14, 16, 18].map((a) => ['age ' + a, { ...base, age: a }]);
+if (mode === 'expr') list = P.EXPRESSIONS.map((e) => [e, { ...base, expr: e }]);
+if (mode === 'styles') list = ['wavy', 'buns', 'ponytail', 'straight', 'braid', 'updo'].map((s) => [s, { ...base, style: s }]);
+if (mode === 'hair') list = Object.keys(P.HAIR).map((h) => [h, { ...base, hair: h }]);
+if (mode === 'skin') list = Object.keys(P.SKIN).map((h) => [h, { ...base, skin: h }]);
+const out = document.getElementById('out');
+list.forEach(([label, o]) => {
+  const c = P.render(o);
+  const big = document.createElement('canvas');
+  big.width = 64; big.height = 64;
+  big.getContext('2d').drawImage(c, 0, 0);
+  big.style.width = big.style.height = 64 * scale + 'px';
+  const d = document.createElement('div'); d.className = 'cell'; d.appendChild(big);
+  const l = document.createElement('div'); l.textContent = label; d.appendChild(l); out.appendChild(d);
+});
+</script></body></html>

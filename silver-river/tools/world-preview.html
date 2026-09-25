@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Silver River world preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>body{margin:0;background:#1b1626;color:#eee;font:12px monospace}.grid{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.cell canvas{width:640px;height:360px;image-rendering:pixelated;display:block}</style></head><body>
+<!-- Dev tool: ?scenes=home,town&season=spring&tod=day -->
+<div class="grid" id="out"></div>
+<script src="../src/js/core.js"></script>
+<script src="../src/js/pixel.js"></script>
+<script src="../src/js/portrait.js"></script>
+<script src="../src/js/sprites.js"></script>
+<script src="../src/js/world.js"></script>
+<script>
+const G = SilverRiver, q = new URLSearchParams(location.search);
+const scenes = (q.get('scenes') || G.World.scenes.join(',')).split(',');
+const outfit = { jacket: '#f7c6d4', collar: '#d85b82', inner: '#fffaf7', skirt: '#9fd6bf', bow: '#e0607e' };
+const pal = G.Sprites.palette({ hair: 'gold', skin: 'fair', eyes: 'blossom' }, outfit);
+const anims = ['idle', 'sword', 'read', 'guqin', 'cook', 'dance', 'pray', 'stars'];
+document.fonts.ready.then(() => scenes.forEach((name, i) => {
+  const c = document.createElement('canvas');
+  const d = document.createElement('div'); d.className = 'cell'; d.appendChild(c);
+  const l = document.createElement('div'); l.textContent = name; d.appendChild(l);
+  document.getElementById('out').appendChild(d);
+  const st = new G.World.Stage(c);
+  st.set(name, { season: q.get('season') || 'spring', tod: q.get('tod') || 'day', magpies: true, items: { books: 4, guqin: 1, sword: 1 } });
+  const [x, y] = st.spot('her');
+  st.add({ kind: 'her', x, y, anim: anims[i % anims.length], pal, clickable: true });
+  st.add({ kind: 'her', x: x - 60, y: y + 4, anim: 'walk_side', pal, moving: true, face: 'side', dir: 1 });
+  for (let k = 0; k < 90; k++) st.update();
+  st.draw();
+}));
+</script></body></html>

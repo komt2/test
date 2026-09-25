@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Silver River sprite preview</title>
+<style>body{margin:0;background:#8fb38a;font:12px monospace;color:#222}.row{display:flex;flex-wrap:wrap;gap:10px;padding:10px;align-items:flex-end}.cell{text-align:center}.cell canvas{image-rendering:pixelated;display:block}</style></head><body>
+<!-- Dev tool: renders every sprite frame in G.Sprites.her at ?scale=10 -->
+<div class="row" id="out"></div>
+<script src="../src/js/core.js"></script>
+<script src="../src/js/pixel.js"></script>
+<script src="../src/js/portrait.js"></script>
+<script src="../src/js/sprites.js"></script>
+<script>
+const G = SilverRiver, q = new URLSearchParams(location.search), scale = +(q.get('scale') || 10);
+const outfit = { jacket: '#f7c6d4', collar: '#d85b82', inner: '#fffaf7', skirt: '#9fd6bf', bow: '#e0607e' };
+const pal = G.Sprites.palette({ hair: q.get('hair') || 'gold', skin: 'fair', eyes: 'blossom' }, outfit);
+const out = document.getElementById('out');
+const frames = G.Sprites.previewFrames ? G.Sprites.previewFrames() : Object.entries(G.Sprites.her).flatMap(([dir, anims]) => Object.entries(anims).flatMap(([a, fr]) => fr.map((f, i) => [dir + '.' + a + i, f])));
+frames.forEach(([label, src]) => {
+  const c = G.PX.render(src, pal);
+  const big = document.createElement('canvas'); big.width = c.width; big.height = c.height;
+  big.getContext('2d').drawImage(c, 0, 0); big.style.width = c.width * scale + 'px'; big.style.height = c.height * scale + 'px';
+  const d = document.createElement('div'); d.className = 'cell'; d.appendChild(big);
+  const l = document.createElement('div'); l.textContent = label; d.appendChild(l); out.appendChild(d);
+});
+</script></body></html>
