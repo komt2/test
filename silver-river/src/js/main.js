@@ -807,8 +807,18 @@
     Sim.save(s);
     let letter = null;
     if (G.LLM.ready()) {
-      UI.toast('She is writing you a letter...');
-      letter = await G.LLM.letter(s, career, star);
+      // she writes while the night winds down, so the wait is part of the story
+      const pending = G.LLM.letter(s, career, star);
+      let done = false;
+      pending.then(() => (done = true));
+      await runEvent({
+        id: 'letter_writing',
+        run: async (g) => {
+          await g.nar(star ? 'Before she crossed, she left a folded sheet of red paper on the table, weighed down with her star hairpin.' : 'Later that night, you see lamplight under her door. She is writing something, very carefully, with her best brush.');
+          if (!done) await g.nar(star ? 'You sit with it for a long time before you open it.' : 'You make two cups of tea and wait. She comes out at last with a letter, and puts it in your hands.');
+        },
+      });
+      letter = await pending;
     }
     letter = letter || E.letter(s, career, star);
     record(career, letter);

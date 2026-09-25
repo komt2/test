@@ -24,6 +24,11 @@
     }
   };
   L.ready = () => !!sample;
+  // codes that mean Claude can't be used in this view: hide the feature for the rest of it
+  const GONE = ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'];
+  function handleError(e) {
+    if (e && GONE.includes(e.code)) sample = null;
+  }
 
   const EXPRS = ['neutral', 'happy', 'joy', 'laugh', 'sad', 'cry', 'teary', 'angry', 'pout', 'surprised', 'shy', 'tired', 'determined', 'worried', 'smug', 'thinking', 'love', 'calm'];
 
@@ -82,7 +87,11 @@ Reply ONLY with JSON: {"reply": string, "expression": one of ${JSON.stringify(EX
 
   L.reply = async function (s, history, said) {
     if (!sample) throw new Error('unavailable');
-    const out = await sample.json(prompt(s, history, said), { modelTier: 'quick' });
+    // every turn of a conversation must be a fresh answer
+    const out = await sample.json(prompt(s, history, said), { modelTier: 'quick', cache: false }).catch((e) => {
+      handleError(e);
+      throw e;
+    });
     const r = out && typeof out === 'object' ? out : {};
     return {
       reply: String(r.reply || '...').slice(0, 400),
@@ -142,10 +151,11 @@ Her most important memories with ${P}:
 ${mems.join('\n')}
 Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm and specific, referencing two or three of the memories above, honest about any painful ones if the bond allows. Start with "Dear ${P}," and end with her name on its own line. Plain text only.`;
     try {
-      const r = await Promise.race([sample(input, { modelTier: 'default' }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 45000))]);
+      const r = await sample(input, { modelTier: 'default' });
       const text = r && r.text ? r.text.trim() : '';
       return text ? text.split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
     } catch (e) {
+      handleError(e);
       return null;
     }
   };
