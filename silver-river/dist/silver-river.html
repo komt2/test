@@ -311,6 +311,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
 .diary.young p { font-family: var(--font-hand-young); }
 .diary.old p { font-family: var(--font-hand); font-size: 1.1rem; }
 .locked-diary { display: grid; place-items: center; gap: 8px; text-align: center; padding: 30px 10px; color: var(--muted); }
+.locked-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 3px dashed var(--paper-3); color: var(--ink-2); }
+.locked-row .ic { width: 18px; height: 18px; color: var(--gold-d); flex: none; }
+.locked-row small { margin-left: auto; color: var(--muted); font-size: 0.78rem; }
 .locked-diary .ic { width: 48px; height: 48px; color: var(--gold-d); }
 .letter { background: #fffaf0; border: 3px solid var(--ink); padding: 20px 26px; }
 .letter p { font-family: var(--font-hand); font-size: 1.15rem; line-height: 1.7; margin: 0 0 10px; color: #2e2440; }
@@ -4436,7 +4439,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
       remember(m) {
         M.remember(s, m);
         if (m.photo) {
-          s.album.push({ id: m.id, title: m.title || '', caption: m.caption || m.text, scene: m.photo.scene || 'home', tod: m.photo.tod || 'day', season: Sim.season(s), anim: m.photo.anim || 'idle', expr: m.photo.expr || 'happy', age: s.age, outfit: s.outfit, npcs: m.photo.npcs || [] });
+          s.album.push({ id: m.id, title: m.title || '', caption: m.caption || m.text, scene: m.photo.scene || 'home', tod: m.photo.tod || 'day', season: Sim.season(s), anim: m.photo.anim || 'idle', expr: m.photo.expr || 'happy', age: m.photo.age || s.age, outfit: s.outfit, npcs: m.photo.npcs || [] });
           io.photo && io.photo(s.album[s.album.length - 1]);
         }
       },
@@ -6826,7 +6829,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
       if (pick.star) s.star += pick.star;
       if (pick.act) s.aff[pick.act] = U.clamp((s.aff[pick.act] || 0) + 0.15, -2, 2);
     }
-    g.remember({ id: 'bday_' + newAge, title: 'Qixi, age ' + newAge, caption: 'Her ' + newAge + 'th Qixi.', text: 'my ' + newAge + 'th birthday', weight: 2, val: 1, tags: ['birthday'], photo: { scene: 'home', tod: 'night', anim: 'cheer', expr: 'joy' } });
+    g.remember({ id: 'bday_' + newAge, title: 'Qixi, age ' + newAge, caption: 'Her ' + newAge + 'th Qixi.', text: 'my ' + newAge + 'th birthday', weight: 2, val: 1, tags: ['birthday'], photo: { scene: 'home', tod: 'night', anim: 'cheer', expr: 'joy', age: newAge } });
   };
 
   // ---------------------------------------------------------------- the finale on her eighteenth Qixi
@@ -7876,8 +7879,27 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
     return `<div class="diary ${young ? 'young' : 'old'}"><div class="d-date">${esc(entry.label)}</div>${entry.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
   };
   UI.diaryBook = function (s) {
+    // once she trusts you with her diary, the pages she locked before open up too
+    const nowOpen = G.Sim.diaryOpen(s).open;
     const book = (s.diaryBook || []).slice().reverse();
-    const html = book.length ? book.map((e) => UI.diaryPage(s, e)).join('') : '<p class="muted">She hasn\'t written anything yet.</p>';
+    const parts = [];
+    let locked = [];
+    const flush = () => {
+      if (!locked.length) return;
+      const range = locked.length > 1 ? locked[locked.length - 1].label + ' to ' + locked[0].label : locked[0].label;
+      parts.push(`<div class="locked-row">${icon('lock')}<span>${locked.length === 1 ? 'A page' : locked.length + ' pages'} she keeps to herself</span><small>${esc(range)}</small></div>`);
+      locked = [];
+    };
+    book.forEach((e) => {
+      if (e.open || nowOpen) {
+        flush();
+        parts.push(UI.diaryPage(s, Object.assign({}, e, { open: true })));
+      } else locked.push(e);
+    });
+    flush();
+    const anyLocked = !nowOpen && book.some((e) => !e.open);
+    const head = anyLocked ? '<p class="note" style="text-align:center">Her diary is locked now. She wears the key around her neck. When she trusts you enough, she may choose to share it.</p>' : '';
+    const html = book.length ? head + parts.join('') : '<p class="muted">She hasn\'t written anything yet.</p>';
     UI.sheet(s.name + '\'s diary', `<div style="display:grid;gap:12px">${html}</div>`);
   };
 })();

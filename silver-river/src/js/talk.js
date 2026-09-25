@@ -486,7 +486,7 @@
       if (pick.star) s.star += pick.star;
       if (pick.act) s.aff[pick.act] = U.clamp((s.aff[pick.act] || 0) + 0.15, -2, 2);
     }
-    g.remember({ id: 'bday_' + newAge, title: 'Qixi, age ' + newAge, caption: 'Her ' + newAge + 'th Qixi.', text: 'my ' + newAge + 'th birthday', weight: 2, val: 1, tags: ['birthday'], photo: { scene: 'home', tod: 'night', anim: 'cheer', expr: 'joy' } });
+    g.remember({ id: 'bday_' + newAge, title: 'Qixi, age ' + newAge, caption: 'Her ' + newAge + 'th Qixi.', text: 'my ' + newAge + 'th birthday', weight: 2, val: 1, tags: ['birthday'], photo: { scene: 'home', tod: 'night', anim: 'cheer', expr: 'joy', age: newAge } });
   };
 
   // ---------------------------------------------------------------- the finale on her eighteenth Qixi

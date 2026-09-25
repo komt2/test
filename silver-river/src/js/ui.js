@@ -570,8 +570,27 @@
     return `<div class="diary ${young ? 'young' : 'old'}"><div class="d-date">${esc(entry.label)}</div>${entry.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
   };
   UI.diaryBook = function (s) {
+    // once she trusts you with her diary, the pages she locked before open up too
+    const nowOpen = G.Sim.diaryOpen(s).open;
     const book = (s.diaryBook || []).slice().reverse();
-    const html = book.length ? book.map((e) => UI.diaryPage(s, e)).join('') : '<p class="muted">She hasn\'t written anything yet.</p>';
+    const parts = [];
+    let locked = [];
+    const flush = () => {
+      if (!locked.length) return;
+      const range = locked.length > 1 ? locked[locked.length - 1].label + ' to ' + locked[0].label : locked[0].label;
+      parts.push(`<div class="locked-row">${icon('lock')}<span>${locked.length === 1 ? 'A page' : locked.length + ' pages'} she keeps to herself</span><small>${esc(range)}</small></div>`);
+      locked = [];
+    };
+    book.forEach((e) => {
+      if (e.open || nowOpen) {
+        flush();
+        parts.push(UI.diaryPage(s, Object.assign({}, e, { open: true })));
+      } else locked.push(e);
+    });
+    flush();
+    const anyLocked = !nowOpen && book.some((e) => !e.open);
+    const head = anyLocked ? '<p class="note" style="text-align:center">Her diary is locked now. She wears the key around her neck. When she trusts you enough, she may choose to share it.</p>' : '';
+    const html = book.length ? head + parts.join('') : '<p class="muted">She hasn\'t written anything yet.</p>';
     UI.sheet(s.name + '\'s diary', `<div style="display:grid;gap:12px">${html}</div>`);
   };
 })();

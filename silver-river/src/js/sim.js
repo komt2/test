@@ -374,7 +374,7 @@
       remember(m) {
         M.remember(s, m);
         if (m.photo) {
-          s.album.push({ id: m.id, title: m.title || '', caption: m.caption || m.text, scene: m.photo.scene || 'home', tod: m.photo.tod || 'day', season: Sim.season(s), anim: m.photo.anim || 'idle', expr: m.photo.expr || 'happy', age: s.age, outfit: s.outfit, npcs: m.photo.npcs || [] });
+          s.album.push({ id: m.id, title: m.title || '', caption: m.caption || m.text, scene: m.photo.scene || 'home', tod: m.photo.tod || 'day', season: Sim.season(s), anim: m.photo.anim || 'idle', expr: m.photo.expr || 'happy', age: m.photo.age || s.age, outfit: s.outfit, npcs: m.photo.npcs || [] });
           io.photo && io.photo(s.album[s.album.length - 1]);
         }
       },
