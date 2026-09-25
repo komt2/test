@@ -32,6 +32,13 @@ except for the web fonts). For development, open `index.html` directly; no serve
     scholar, silk merchant, herbal physician, court musician or tea farmer.
   - Warmth and strictness are tracked on two axes, and she notices your parenting style.
   - Talks, outings, festivals, birthdays and journeys are things you do *with* her.
+- **She grows up in front of you.**
+  - Her portrait ages from 10 to 18, and her world sprite grows from a child's body to a teen's to a grown one.
+    Her friends grow alongside her, and album photos show her at the size she was then.
+  - At fifteen comes the hairpin ceremony (及笄): you pin up her hair with the star hairpin she fell holding,
+    and give her a courtesy name. She decides for herself whether to keep wearing her hair up.
+  - The courtyard keeps traces of her life: height marks on the pillar, Mei's rabbit lantern, a cat basket,
+    a training post, a snow rabbit, a kite stuck in the peach tree.
 - **A town that lives without you.**
   - About fifteen townsfolk with their own story arcs: best friend Mei, shy dumpling-boy Tao, rival-turned-friend
     Lady Wanyin, a runaway prince, and mentors with secrets.
@@ -84,6 +91,7 @@ silver-river/
   src/js/events.js        story events (childhood, friends, rivals, first love, fights, secrets...)
   src/js/events2.js       townsfolk arcs and events she starts herself
   src/js/town.js          courtyard visitors and the "Around town" news
+  src/js/chatter.js       her everyday voice: what she says when tapped, while idling, and in the planner
   src/js/talk.js          talks, outings, festivals, journeys, birthdays and the finale
   src/js/minigames.js     riddles, recital, duel, dragon-boat race
   src/js/llm.js           optional Claude heart-to-hearts and letters (claude.ai `sample` capability)

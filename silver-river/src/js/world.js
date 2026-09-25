@@ -238,6 +238,23 @@
     roof(g, -6, 72, WW + 12, 8);
     // main hall
     house(g, 70, 70, 180, 50, { door: true, windows: [[12, 14, 34, 24], [134, 14, 34, 24]], pillars: [2, 60, 116, 174], roofH: 16 });
+    // New Year in winter: red couplets by the door, a banner above it and 福 on it
+    if (season === 'winter') {
+      [147, 169].forEach((cx) => {
+        PX.rect(g, cx, 95, 4, 21, C.red[2]);
+        PX.vline(g, cx, 95, 115, C.red[1]);
+        for (let i = 0; i < 5; i++) PX.dot(g, cx + 2, 97 + i * 4, C.gold[2]);
+      });
+      PX.rect(g, 149, 90, 22, 3, C.red[2]);
+      for (let i = 0; i < 4; i++) PX.dot(g, 153 + i * 4, 91, C.gold[2]);
+      for (let dy = -3; dy <= 3; dy++) {
+        const w = 3 - Math.abs(dy);
+        for (let dx = -w; dx <= w; dx++) PX.dot(g, 160 + dx, 101 + dy, Math.abs(dx) + Math.abs(dy) === 3 ? C.gold[2] : C.red[3]);
+      }
+      PX.dot(g, 160, 101, C.gold[1]);
+      PX.dot(g, 159, 100, C.gold[1]);
+      PX.dot(g, 161, 102, C.gold[1]);
+    }
     // plaque
     PX.rect(g, 146, 58, 28, 10, C.wood[0]);
     PX.rect(g, 147, 59, 26, 8, '#2f3a6b');
