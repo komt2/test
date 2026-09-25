@@ -255,12 +255,17 @@
     PX.vline(g, 281, 110, 124, C.wood[1]);
     PX.hline(g, 262, 283, 110, C.wood[0]);
     PX.hline(g, 262, 283, 109, C.roof[1]);
+    const items = o.items || {};
     [[96, 124], [214, 124]].forEach(([x, y]) => {
       PX.rect(g, x, y, 10, 7, '#3f6fa0');
       PX.hline(g, x, x + 9, y, '#6f9fd0');
       PX.disc(g, x + 5, y - 3, 4, season === 'winter' ? '#e6ecf5' : FOL[season][2]);
+      // her favourite flower, in its season
+      if (items.flower) {
+        const r = PX.rng(x);
+        for (let i = 0; i < 5; i++) PX.dot(g, x + 2 + Math.floor(r() * 7), y - 6 + Math.floor(r() * 5), items.flower);
+      }
     });
-    const items = o.items || {};
     // height marks cut into the pillar, one for every Qixi
     for (let i = 0; i < Math.min(8, items.heights || 0); i++) {
       const y = 112 - i * 3;
@@ -279,6 +284,53 @@
     PX.hline(g, 60, 95, 158, C.wood[0]);
     if (season !== 'winter') for (let i = 0; i < 6; i++) PX.dot(g, 63 + i * 6, 156 - (i % 2), season === 'autumn' ? '#d9a13a' : '#6fae5f');
     if (items.drawing) { PX.rect(g, 118, 92, 8, 9, '#fffdf6'); PX.dot(g, 120, 95, '#e36d6d'); PX.dot(g, 123, 96, '#4a8cc4'); }
+    // traces of her life in the courtyard
+    if (items.rabbitLantern) {
+      // Mei's giant rabbit lantern, hung between the window and the door
+      const lx = 138;
+      PX.vline(g, lx + 4, 86, 89, C.wood[0]);
+      PX.rect(g, lx, 92, 10, 7, '#fffaf0');
+      PX.hline(g, lx, lx + 9, 99, '#e9dcc8');
+      PX.vline(g, lx + 1, 88, 91, '#fffaf0'); PX.vline(g, lx + 3, 89, 91, '#fffaf0');
+      PX.dot(g, lx + 1, 89, '#f7a8c0');
+      PX.dot(g, lx + 7, 94, '#e0485e');
+      PX.dot(g, lx + 2, 95, '#f7a8c0');
+      PX.dot(g, lx + 9, 96, '#fffaf0');
+    }
+    if (items.catBed) {
+      PX.rect(g, 184, 113, 12, 5, '#b8874f');
+      PX.hline(g, 184, 195, 113, '#d9a66a');
+      PX.hline(g, 185, 194, 117, '#8a5e33');
+      PX.rect(g, 186, 112, 8, 2, '#c7364a');
+    }
+    if (items.dummy) {
+      PX.rect(g, 286, 132, 5, 24, C.wood[1]);
+      PX.vline(g, 286, 132, 155, C.wood[0]);
+      PX.rect(g, 282, 138, 13, 2, C.wood[2]);
+      PX.rect(g, 283, 146, 11, 2, C.wood[2]);
+      PX.rect(g, 284, 156, 9, 2, C.stone[1]);
+    }
+    if (items.stones) [[99, 162, '#a9a39a'], [103, 163, '#8f8a82'], [101, 161, '#c9c3b8'], [106, 162, '#b7b0a4']].forEach(([x, y, c]) => { PX.rect(g, x, y, 3, 2, c); });
+    if (items.kite && season === 'spring') {
+      // a kite that never came down from the peach tree
+      PX.line(g, 60, 94, 70, 104, '#8a5e33');
+      for (let dy = -4; dy <= 4; dy++) {
+        const w = 4 - Math.abs(dy);
+        for (let dx = -w; dx <= w; dx++) PX.dot(g, 56 + dx, 90 + dy, dx === 0 || dy === 0 ? '#f2c14a' : Math.abs(dx) + Math.abs(dy) === 4 ? '#8f2530' : '#e0485e');
+      }
+      PX.dot(g, 69, 106, '#f2c14a'); PX.dot(g, 68, 109, '#e0485e'); PX.dot(g, 70, 112, '#f2c14a'); PX.dot(g, 69, 115, '#e0485e');
+    }
+    if (items.snow && season === 'winter') {
+      // her snow rabbit
+      PX.rect(g, 130, 156, 9, 5, '#f4f7fc');
+      PX.hline(g, 130, 138, 161, '#c9d3e3');
+      PX.rect(g, 136, 152, 5, 5, '#f4f7fc');
+      PX.vline(g, 137, 148, 151, '#f4f7fc');
+      PX.vline(g, 139, 149, 151, '#f4f7fc');
+      PX.dot(g, 139, 154, '#e0485e');
+      PX.dot(g, 141, 155, '#c9d3e3');
+      PX.dot(g, 129, 157, '#f4f7fc');
+    }
     return { lanterns: [[80, 74], [236, 74]], spots: { her: [160, 146], door: [160, 118], left: [70, 150], right: [240, 150], parent: [124, 150], tree: [40, 150], mentor: [200, 148] } };
   };
 

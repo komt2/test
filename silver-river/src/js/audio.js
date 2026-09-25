@@ -261,6 +261,32 @@
       case 'page':
         pluck(M.root + 2, t, 0.12, sfxBus);
         break;
+      // the magpies arrive: a long rising pentatonic cascade, like wings
+      case 'bridge': {
+        const P = [0, 2, 4, 7, 9];
+        for (let i = 0; i < 18; i++) pluck(M.root + P[i % 5] + 12 * Math.floor(i / 5), t + i * 0.13 + Math.random() * 0.03, 0.12 + (i % 5 === 0 ? 0.06 : 0), sfxBus);
+        pluck(M.root + 36, t + 18 * 0.13 + 0.1, 0.18, sfxBus);
+        break;
+      }
+      // the bridge comes apart into falling stars
+      case 'starfall': {
+        const P = [9, 7, 4, 2, 0];
+        for (let i = 0; i < 14; i++) pluck(M.root + 36 - 12 * Math.floor(i / 5) + P[i % 5] - 12, t + i * 0.17 + Math.random() * 0.05, 0.1, sfxBus);
+        break;
+      }
+      // she climbs the bridge: slow, rising, unresolved until the last note
+      case 'ascend': {
+        const seq = [0, 4, 7, 9, 12, 16, 19, 21, 24, 28];
+        seq.forEach((d, i) => pluck(M.root + d, t + i * 0.55, 0.16, sfxBus));
+        pluck(M.root + 31, t + seq.length * 0.55 + 0.4, 0.22, sfxBus);
+        break;
+      }
+      // a star falls into the peach tree
+      case 'fall':
+        [31, 28, 26, 24, 21, 19].forEach((d, i) => pluck(M.root + d, t + i * 0.08, 0.1, sfxBus));
+        pluck(M.root + 19, t + 0.75, 0.3, sfxBus);
+        pluck(M.root + 31, t + 0.75, 0.12, sfxBus);
+        break;
     }
   };
 })();

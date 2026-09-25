@@ -523,7 +523,6 @@
     g.anim('idle');
     // the magpies come
     g.fx('bridge', 'build');
-    if (G.Audio) G.Audio.sfx('bell');
     await g.nar('And then the magpies come: thousands of them, wing to wing, building a bridge across the Silver River.');
     await g.nar('A second bridge follows, curving down, down, until it touches the stones of your courtyard.');
     await g.say('voice', 'Little thread. It is time. The river remembers you. Will you come home?');

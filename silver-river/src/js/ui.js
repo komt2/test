@@ -246,13 +246,34 @@
     const s = UI.state;
     const st = UI.stage;
     UI.hideBubble();
-    const items = s ? { books: Math.floor(s.stats.wit / 18), sword: (s.counts.martial || 0) >= 3, guqin: (s.counts.guqin || 0) >= 2, heights: (s.heights || []).length } : {};
+    const items = s ? UI.homeItems(s) : {};
     st.set(name, Object.assign({ season: s ? D.SEASONS[s.turn % 4] : 'summer', tod: 'day', items }, opts));
     st.clear();
     UI.herActor = null;
     UI.npcActors = {};
     if (s && !opts.noHer) UI.placeHer(opts.anim || 'idle');
     return true;
+  };
+  // what her life has left around the house
+  const FLOWER_COLOR = { 'peach blossoms': ['spring', '#f7a8c0'], orchids: ['spring', '#c9a8e8'], peonies: ['spring', '#e36d8f'], lotus: ['summer', '#f4b6c8'], chrysanthemums: ['autumn', '#f2c14a'], 'plum blossoms': ['winter', '#e25a7a'] };
+  UI.homeItems = function (s) {
+    const sea = D.SEASONS[s.turn % 4];
+    const fl = s.fav && FLOWER_COLOR[s.fav.flower];
+    const seen = (id) => !!(s.seen && s.seen[id]);
+    const it = {
+      books: Math.floor(s.stats.wit / 18),
+      sword: (s.counts.martial || 0) >= 3,
+      guqin: (s.counts.guqin || 0) >= 2,
+      heights: (s.heights || []).length,
+    };
+    if (fl && fl[0] === sea) it.flower = fl[1];
+    if (seen('mei_lantern') || seen('rabbit_lantern')) it.rabbitLantern = true;
+    if (s.flags.pet) it.catBed = true;
+    if ((s.counts.martial || 0) >= 5) it.dummy = true;
+    if (s.fav && s.fav.quirk === 'collects smooth river stones') it.stones = true;
+    if (s.traits.playful > -20 && s.age <= 15) it.snow = true;
+    if (s.traits.playful + s.traits.dreamy > 10 || (s.counts.play || 0) >= 2) it.kite = true;
+    return it;
   };
   UI.placeHer = function (anim = 'idle', spot = 'her') {
     const s = UI.state;

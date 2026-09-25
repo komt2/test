@@ -45,6 +45,8 @@
     minigame: (k, o) => App.minigame(k, o),
     fx: async (name, arg) => {
       const st = UI.stage;
+      const sound = name === 'bridge' ? { build: 'bridge', dissolve: 'starfall' }[arg] : { fallingStar: 'fall', ascend: 'ascend', newStar: 'bell' }[name];
+      if (sound) G.Audio.sfx(sound);
       if (name !== 'ascend') return st.fx(name, arg);
       // she climbs the second bridge, fading into the sky
       const her = UI.herActor;
@@ -578,7 +580,7 @@
     root.innerHTML = `
       <div class="plan-head"><h3>Plans for ${D.SEASON_NAME[sea]}</h3><span class="gold">${icon('coin')}${s.gold}</span></div>
       <div class="wish"><canvas id="wish-port" width="64" height="64"></canvas><p>“${esc(wishText)}”<span class="mood">${esc(s.name)} feels ${M.MOOD_WORDS[mood.label].toLowerCase()}${s.stress >= 70 ? ' and exhausted' : ''}.</span></p></div>
-      <div class="slots">${slots}</div>
+      <div class="slots">${slots}</div>${s.turn < 2 && !full ? '<p class="note plan-tip">Choose what she does in each month: tap a card to fill the highlighted month. Lessons cost coins, work earns them, and she has opinions about all of it.</p>' : ''}
       <div class="tabs" role="tablist">${tabs}</div>
       <div class="acts">${acts}</div>
       <p class="sub">This season together</p>
@@ -588,7 +590,7 @@
         <button class="btn btn-ghost" type="button" data-do="wardrobe">${icon('robe')}Clothes</button>
       </div>
       <div class="focus" role="group" aria-label="Your own season">${[['balanced', 'Balanced'], ['work', 'Work extra (+90)'], ['family', 'Family time (−40)']].map(([k, n]) => `<button type="button" data-focus="${k}" aria-pressed="${s.focus === k}">${n}</button>`).join('')}</div>
-      <div class="plan-go"><div class="sum"><span>Lessons −${cost}${pay ? ' · her work +' + pay : ''} · your income +${income} at season's end</span>${short ? `<span class="warn">${short} coins short${pay ? ': put work before lessons' : ''}</span>` : ''}</div>
+      <div class="plan-go"><div class="sum"><span>${[cost ? 'Lessons −' + cost : '', pay ? 'her work +' + pay : '', 'your income +' + income + ' at season\'s end'].filter(Boolean).join(' · ')}</span>${short ? `<span class="warn">${short} coins short${pay ? ': put work before lessons' : ''}</span>` : ''}</div>
       <button class="btn btn-big" type="button" data-do="begin" ${full && !short ? '' : 'disabled'}>${full ? 'Begin the season' : 'Plan all three months'}</button></div>`;
     const wc = $('#wish-port');
     wc.getContext('2d').drawImage(G.Portrait.render(UI.herPortraitOpts(s, P.face || M.restingExpr(s))), 0, 0);
