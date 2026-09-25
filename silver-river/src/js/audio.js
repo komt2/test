@@ -202,6 +202,28 @@
   };
   Au.unlocked = () => !!ctx && ctx.state === 'running';
 
+  // a single zither note (used by the recital mini-game)
+  Au.note = function (midi) {
+    if (!ctx || ctx.state !== 'running') return;
+    pluck(midi, ctx.currentTime + 0.01, 0.34, sfxBus);
+  };
+  let lastBlip = 0;
+  Au.blip = function () {
+    if (!ctx || ctx.state !== 'running' || settings.sfx <= 0) return;
+    const now = ctx.currentTime;
+    if (now - lastBlip < 0.07) return;
+    lastBlip = now;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.value = 520 + Math.random() * 120;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.018, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+    o.connect(g).connect(sfxBus);
+    o.start(now);
+    o.stop(now + 0.06);
+  };
+
   // ---------- sound effects ----------
   Au.sfx = function (kind) {
     if (!ctx || ctx.state !== 'running' || settings.sfx <= 0) return;

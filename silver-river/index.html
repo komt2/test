@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silver River</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans:wght@400;500;600;700&family=Yomogi&family=Klee+One:wght@400;600&display=swap">
+<link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+<div id="app">
+  <section id="title" class="screen title-screen">
+    <canvas id="title-canvas" class="px"></canvas>
+    <div class="title-inner">
+      <div class="logo"><span class="logo-zh">銀河之女</span><h1>Silver River</h1><p class="tagline">Raise the daughter who fell from the stars</p></div>
+      <div class="title-menu">
+        <button id="btn-continue" class="btn btn-big" type="button" hidden>Continue</button>
+        <button id="btn-new" class="btn btn-big" type="button">New story</button>
+        <button id="btn-register" class="btn btn-ghost" type="button">Family register</button>
+        <button id="btn-settings" class="btn btn-ghost" type="button">Settings</button>
+      </div>
+      <p id="title-note" class="title-note"></p>
+    </div>
+  </section>
+
+  <section id="setup" class="screen setup-screen" hidden>
+    <div id="setup-card" class="setup-card frame"></div>
+  </section>
+
+  <section id="game" class="screen game-screen" hidden>
+    <header id="hud" class="hud frame-dark"></header>
+    <div class="play">
+      <div class="stage-col">
+        <div class="stage-wrap">
+          <canvas id="stage" class="px" width="320" height="180"></canvas>
+          <div id="toasts" aria-live="polite"></div>
+          <div id="bubble" class="bubble" hidden></div>
+          <div id="caption" class="caption frame" hidden></div>
+        </div>
+        <div id="status" class="status frame-dark"></div>
+      </div>
+      <div class="side">
+        <aside id="planner" class="planner frame" aria-label="Season planner"></aside>
+        <div id="dialogue" class="dialogue frame" hidden>
+          <div class="dlg-tools"><button id="dlg-skip" class="btn btn-ghost" type="button" hidden>Skip ▸▸</button></div>
+          <div class="dlg-portrait"><canvas id="dlg-canvas" width="64" height="64" class="px"></canvas><div class="dlg-seal" hidden></div></div>
+          <div class="dlg-body">
+            <div class="dlg-name"></div>
+            <div class="dlg-text" aria-live="polite"></div>
+            <div class="dlg-choices"></div>
+            <div class="dlg-input" hidden><input id="dlg-in" class="text-in" maxlength="140" autocomplete="off" aria-label="Your words"><button id="dlg-send" class="btn" type="button">OK</button></div>
+            <div class="dlg-next" hidden>▼</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="overlay" class="overlay" hidden></div>
+  <div id="minigame" class="mg-wrap" hidden></div>
+</div>
+
+<script src="src/js/core.js"></script>
+<script src="src/js/pixel.js"></script>
+<script src="src/js/icons.js"></script>
+<script src="src/js/portrait.js"></script>
+<script src="src/js/sprites.js"></script>
+<script src="src/js/world.js"></script>
+<script src="src/js/audio.js"></script>
+<script src="src/js/data.js"></script>
+<script src="src/js/npcs.js"></script>
+<script src="src/js/mind.js"></script>
+<script src="src/js/sim.js"></script>
+<script src="src/js/endings.js"></script>
+<script src="src/js/events.js"></script>
+<script src="src/js/events2.js"></script>
+<script src="src/js/talk.js"></script>
+<script src="src/js/minigames.js"></script>
+<script src="src/js/llm.js"></script>
+<script src="src/js/ui.js"></script>
+<script src="src/js/main.js"></script>
+</body>
+</html>
