@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Silver River art preview</title>
+<style>
+body{margin:0;background:#f3eef6;font:12px system-ui;}
+.row{display:flex;flex-wrap:wrap;gap:6px;padding:6px}
+.cell{width:220px;text-align:center;background:#fff;border-radius:8px}
+.cell svg{width:220px;height:275px;display:block}
+.eyes-shut{display:none}.mouth-talk{display:none}
+</style></head><body>
+<!-- Dev tool: open with ?mode=ages|expr|styles|hair|eyes|outfits (&age=14&style=wavy&hair=gold ...) -->
+<div id="out"></div>
+<script src="../src/js/core.js"></script>
+<script src="../src/js/art.js"></script>
+<script>
+const A = SilverRiver.Art;
+const q = new URLSearchParams(location.search);
+const mode = q.get('mode') || 'ages';
+const age = +(q.get('age') || 14);
+const look = { hair: q.get('hair') || 'gold', eyes: q.get('eyes') || 'blossom', skin: q.get('skin') || 'fair', style: q.get('style') || 'wavy', freckles: q.get('freckles') === '1' };
+const P = (o) => A.portrait(Object.assign({ look, age, expr: 'neutral', blink: false }, o));
+let cells = [];
+if (mode === 'ages') [10, 12, 14, 16, 18].forEach((a) => cells.push([`age ${a}`, P({ age: a })]));
+if (mode === 'expr') A.EXPRESSIONS.forEach((e) => cells.push([e, P({ expr: e })]));
+if (mode === 'styles') Object.keys(A.STYLES).forEach((s) => cells.push([s, P({ look: { ...look, style: s }, expr: 'happy' })]));
+if (mode === 'hair') Object.keys(A.HAIR).forEach((h) => cells.push([h, P({ look: { ...look, hair: h } })]));
+if (mode === 'eyes') Object.keys(A.EYES).forEach((e) => cells.push([e, P({ look: { ...look, eyes: e } })]));
+if (mode === 'outfits') Object.keys(A.OUTFITS).forEach((o) => cells.push([o, P({ outfit: o, expr: 'happy', age: +(q.get('age') || 17) })]));
+if (mode === 'emotes') A.EMOTES.forEach((e) => cells.push([e, P({ emote: e })]));
+document.getElementById('out').innerHTML = '<div class="row">' + cells.map(([l, s]) => `<div class="cell">${s}<div>${l}</div></div>`).join('') + '</div>';
+</script></body></html>
