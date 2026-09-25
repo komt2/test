@@ -54,7 +54,7 @@
     const last = s.log[s.log.length - 1];
     const recent = last ? last.months.map((m) => (D.ACT[m.act] ? D.ACT[m.act].name + ' (' + m.outcome + ')' : m.act)).join(', ') : 'nothing yet';
     return [
-      `Name: ${s.name}. Age: ${s.age}. Calls her ${s.parent.role === 'mom' ? 'mother' : 'father'} "${M.addr(s)}".`,
+      `Name: ${s.name}${s.zi ? ` (courtesy name ${s.zi}, given by her parent at her hairpin ceremony)` : ''}. Age: ${s.age}. Calls her ${s.parent.role === 'mom' ? 'mother' : 'father'} "${M.addr(s)}".`,
       `Personality: ${traitWords(s)}. Speaking voice: ${M.voice(s)}.`,
       `Mood: ${mood.label}. Stress: ${s.stress}/100. Current feeling: ${s.emotion ? s.emotion.kind : 'calm'}.`,
       `Needs (0=starved, 100=full): fun ${s.needs.fun}, affection ${s.needs.love}, freedom ${s.needs.freedom}, achievement ${s.needs.pride}, friends ${s.needs.friends}.`,

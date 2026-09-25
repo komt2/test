@@ -803,7 +803,7 @@
     const e = profile.endings[career.id] || { count: 0, first: Date.now() };
     e.count++;
     profile.endings[career.id] = e;
-    profile.register.push({ name: s.name, look: s.look, style: s.style, ending: career.id, endingName: career.name, zh: career.zh, parent: s.parent, code: s.code, date: Date.now(), letter, bond: s.bond, styleName: M.style(s).name, stats: s.stats });
+    profile.register.push({ name: s.name, zi: s.zi || '', ziZh: s.ziZh || '', look: s.look, style: s.style, ending: career.id, endingName: career.name, zh: career.zh, parent: s.parent, code: s.code, date: Date.now(), letter, bond: s.bond, styleName: M.style(s).name, stats: s.stats });
     if (profile.register.length > 60) profile.register.shift();
     Sim.saveProfile(profile);
   }
@@ -814,7 +814,7 @@
       const outfit = D.OUTFITS[career.outfit] || D.OUTFITS.everyday;
       const portOpts = Object.assign(UI.herPortraitOpts(s, star ? 'calm' : 'happy'), { age: 18, outfit, outfitKey: career.outfit });
       const epilogue = [career.text ? M.fill(s, career.text) : '', star ? (s.finale.bridge ? 'Every year since, on the night of Qixi, when the magpies build their bridge, a girl with starlight hair crosses it the wrong way, and comes home for one night.' : 'On clear nights you sit in the courtyard and find her star. It is always the brightest one.') : E.relationText(s), star ? '' : E.friendsText(s)].filter(Boolean);
-      pages.push(`<div class="ending-title"><div class="zh">${esc(career.zh)}</div><h2>${esc(career.name)}</h2><p>${esc(s.name)}, eighteen</p></div><div class="ending-hero"><div class="scene"><canvas id="end-scene"></canvas></div><canvas id="end-port" class="port"></canvas></div>`);
+      pages.push(`<div class="ending-title"><div class="zh">${esc(career.zh)}</div><h2>${esc(career.name)}</h2><p>${esc(s.name)}${s.zi ? ' · ' + esc(s.zi) + (s.ziZh ? ' ' + esc(s.ziZh) : '') : ''}, eighteen</p></div><div class="ending-hero"><div class="scene"><canvas id="end-scene"></canvas></div><canvas id="end-port" class="port"></canvas></div>`);
       pages.push(`<div class="prose">${epilogue.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`);
       pages.push(`<div class="letter">${letter.map((l, i) => `<p class="${i === letter.length - 1 ? 'sig' : ''}">${esc(l)}</p>`).join('')}</div>`);
       const style = M.style(s);
@@ -921,7 +921,7 @@
   function register() {
     const list = profile.register.slice().reverse();
     const html = list.length
-      ? `<div class="register">${list.map((r, i) => `<div class="reg-item"><canvas data-r="${profile.register.length - 1 - i}"></canvas><div><b style="font-family:var(--font-display);color:var(--red-d)">${esc(r.name)}</b> · ${esc(r.zh || '')} ${esc(r.endingName)}<br><span class="muted">${new Date(r.date).toLocaleDateString()} · raised by ${r.parent.role === 'mom' ? 'her mother' : 'her father'} · code ${esc(r.code || '')}</span></div><button class="btn btn-ghost" type="button" data-l="${profile.register.length - 1 - i}">Letter</button></div>`).join('')}</div><p style="margin:10px 0 0"><button class="btn btn-ghost" type="button" id="reg-endings">Endings found</button></p>`
+      ? `<div class="register">${list.map((r, i) => `<div class="reg-item"><canvas data-r="${profile.register.length - 1 - i}"></canvas><div><b style="font-family:var(--font-display);color:var(--red-d)">${esc(r.name)}</b>${r.zi ? ' <span class="muted">(' + esc(r.zi) + ')</span>' : ''} · ${esc(r.zh || '')} ${esc(r.endingName)}<br><span class="muted">${new Date(r.date).toLocaleDateString()} · raised by ${r.parent.role === 'mom' ? 'her mother' : 'her father'} · code ${esc(r.code || '')}</span></div><button class="btn btn-ghost" type="button" data-l="${profile.register.length - 1 - i}">Letter</button></div>`).join('')}</div><p style="margin:10px 0 0"><button class="btn btn-ghost" type="button" id="reg-endings">Endings found</button></p>`
       : '<p class="muted">No daughters yet. Every daughter you raise will be remembered here, with her portrait, her life and her letter.</p><p><button class="btn btn-ghost" type="button" id="reg-endings">Endings to discover</button></p>';
     UI.sheet('Family register', html, (root) => {
       root.querySelectorAll('canvas[data-r]').forEach((c) => {

@@ -458,10 +458,95 @@
     { id: 'favfood', name: 'A basket of {food}', cost: 15, needFav: 'food' },
     { id: 'plush', name: 'An embroidered {animal}', cost: 20, needFav: 'animal' },
   ];
+  // ---------------------------------------------------------------- the hairpin ceremony (及笄) at fifteen
+  T.COURTESY = [
+    { zi: 'Yunzhi', zh: '雲織', means: 'cloud weaver, after the Weaver Girl' },
+    { zi: 'Xinghe', zh: '星河', means: 'star river, for where she came from' },
+    { zi: 'Wanqing', zh: '晚晴', means: 'a clear evening sky' },
+    { zi: 'Zhiwei', zh: '知微', means: 'she who notices small things' },
+    { zi: 'Mingyue', zh: '明月', means: 'bright moon' },
+    { zi: 'Ruoxi', zh: '若曦', means: 'like the first light of morning' },
+  ];
+  T.ceremonyDue = (s, newAge) => !s.flags.jiji && (newAge === 15 || (s.startAge >= 15 && newAge === 16));
+  T.hairpin = async function (g, newAge) {
+    const s = g.s;
+    g.flag('jiji', true);
+    // a respected woman of the town combs her hair
+    const guest = (s.counts.etiquette || 0) >= 2 || s.seen.hua_softens ? 'hua' : (s.counts.temple || 0) >= 2 ? 'jingci' : 'bao';
+    const G_ = G.NPC[guest].name;
+    const mei = s.friends.mei >= 30;
+    await g.scene('home', { tod: 'day', season: 'summer' });
+    g.npc(guest, 'mentor');
+    if (mei) g.npc('mei', 'left');
+    await g.nar(newAge > 15 ? 'She came to you already fifteen, so there was never a hairpin ceremony for her. This year ' + G_ + ' will not hear another word about it.' : 'The morning of her fifteenth Qixi. In Peach Blossom Town, a girl of fifteen has her hair pinned up for the first time: the jiji, the hairpin ceremony. After today, the whole town will call her a young woman.');
+    await g.say(guest, { hua: 'Sit straight. Chin up. A lady is made in the small moments.', jingci: 'Sit, child. Breathe. It is only hair. It is also everything.', bao: 'Sit! Sit. I did my own daughter\'s hair, and my sister\'s, and half the lane\'s. You\'re in good hands.' }[guest]);
+    await g.nar(G_ + ' combs out her hair, a hundred slow strokes, while the courtyard fills with neighbors pretending they just happened to be passing by.');
+    await g.nar('By custom the pin is a plain one of polished wood. ' + G_ + ' holds out a hand for it.');
+    await g.her('shy', { _: 'Wait. Can we use this one?', sassy: 'Hold on. Not that one. This one.', soft: 'Um... if it\'s allowed... could we use this one instead?' });
+    await g.nar('She opens her hand. It is the golden star hairpin she was holding the night she fell into your peach tree.');
+    await g.her('teary', { _: 'And I want you to do it, ' + g.P + '. Not anyone else.', sassy: 'And you do it. You. Nobody else touches my hair today.' });
+    const c = await g.choose(['Pin it up yourself, very carefully.', '"You were holding this the night you fell. You wouldn\'t let go of it for three days."', '"Hold still, or I\'ll pin it to your ear."']);
+    if (c === 0) {
+      g.parent(4, 0);
+      await g.nar('Your hands are not quite steady. It takes three tries. Nobody says a word, and nobody minds.');
+    } else if (c === 1) {
+      g.parent(4, 0);
+      g.trust(3);
+      await g.her('teary', { _: 'I remember. I thought if I let go, I\'d forget where I came from.', dreamy: 'I thought it was the last little piece of the sky I had left.' });
+      await g.her('love', 'I don\'t need to hold it so tight anymore.');
+    } else {
+      g.parent(3, -1);
+      await g.her('laugh', { _: 'Don\'t you dare!', sassy: 'You wouldn\'t. ...You would. Okay, I\'m bracing myself.' });
+    }
+    await g.nar('The star catches the morning light, and for a moment it seems to glow on its own.');
+    await g.her('surprised', {
+      sunny: 'Whoa. Is that me? I look like someone who knows things!',
+      soft: '(She touches the pin, very gently.) It feels like the stars are holding my hair up.',
+      sassy: 'Okay. I look... older. Don\'t cry. You\'re crying. I\'m not crying. This is sweat.',
+      dreamy: 'The girl in the mirror looks like she\'s about to go somewhere far away.',
+      earnest: 'I\'ll try to deserve it. Being grown up, I mean.',
+    });
+    // the courtesy name, the name the world will call her by
+    await g.say(guest, { hua: 'Now her courtesy name. A young woman needs a name for the world, not only for her family. It is the parent\'s to give.', jingci: 'And now a courtesy name. The world will call her by it. Choose with your heart.', bao: 'Now the courtesy name! This is the part where everyone cries. Go on, go on.' }[guest]);
+    const pool = U.shuffle(T.COURTESY.slice()).slice(0, 3);
+    const c2 = await g.choose(pool.map((n) => n.zi + ' ' + n.zh + ': ' + n.means).concat(['Write one yourself']));
+    let zi = pool[0].zi, zh = pool[0].zh;
+    if (c2 < 3) {
+      zi = pool[c2].zi;
+      zh = pool[c2].zh;
+    } else {
+      const typed = String((await g.input('Her courtesy name', pool[0].zi)) || '').trim().slice(0, 20);
+      if (typed) {
+        zi = typed;
+        zh = '';
+      }
+    }
+    s.zi = zi;
+    s.ziZh = zh;
+    await g.her('love', { _: zi + '. ' + zi + '... I like it. It sounds like someone I want to be.', sassy: zi + '. Hm. Acceptable. No. I love it. Don\'t make it weird.', soft: '(She says it under her breath, twice, as if trying it on.) ' + zi + '.' });
+    if (mei) await g.say('mei', 'Lady ' + zi + '! I\'m calling you that at the market. Loudly. Every single time.');
+    // she decides how she'll wear it from now on
+    const up = s.traits.diligent + (s.stats.grace - 30) - s.traits.playful - s.traits.fiery / 2 > 0 && s.style !== 'updo';
+    if (up) {
+      s.style = 'updo';
+      g.io.refreshHer && g.io.refreshHer();
+      await g.her('happy', 'I think I\'ll wear it up from now on. It feels right.');
+    } else {
+      await g.her('smug', { _: 'I\'ll wear it up for festivals. The rest of the time my hair does what it wants. Like me.', soft: 'Can I still wear it down sometimes? I like it both ways.' });
+    }
+    g.bond(6);
+    g.esteem(6);
+    g.trust(3);
+    g.stat('grace', 2);
+    g.remember({ id: 'jiji', title: 'The hairpin ceremony', caption: 'The star hairpin, pinned up at last.', text: 'the morning you pinned up my hair with the star hairpin', letter: 'I still remember the morning you pinned my hair up with the star hairpin and named me ' + zi + '. Your hands were shaking. So were mine.', weight: 9, val: 1, tags: ['parent', 'star'], photo: { scene: 'home', tod: 'day', anim: 'idle', expr: 'shy', age: newAge, npcs: mei ? ['mei'] : [] } });
+    g.clearNpcs();
+  };
+
   T.birthday = async function (g) {
     const s = g.s;
-    await g.scene('home', { tod: 'night', season: 'summer' });
     const newAge = s.age + 1;
+    if (T.ceremonyDue(s, newAge)) await T.hairpin(g, newAge);
+    await g.scene('home', { tod: 'night', season: 'summer' });
     await g.nar('Qixi again. A year ago tonight' + (s.turn < 4 ? ' she fell from the sky' : ', and every year before') + '. The magpies are gathering, and she turns ' + newAge + '.');
     // height mark on the pillar
     s.heights.push(newAge);

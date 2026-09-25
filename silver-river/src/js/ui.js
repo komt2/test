@@ -505,7 +505,7 @@
     const html = `
       <div class="grid2">
         <div class="box" style="align-items:center;text-align:center"><canvas class="px" id="prof-port" style="width:192px;height:192px;border:3px solid var(--ink);background:#e8d9b0"></canvas>
-          <h3>${esc(s.name)}, ${s.age}</h3><p class="muted" style="margin:0">${M.MOOD_WORDS[mood.label]}${s.dream ? ' · dreams of being ' + esc(({ general: 'a general', swordswoman: 'a wandering hero', scholar: 'a scholar', astronomer: 'an astronomer', immortal: 'an immortal', physician: 'a physician', musician: 'a musician', dancer: 'a dancer', poet: 'a poet', princess: 'a princess', priestess: 'an abbess', teacher: 'a teacher', chef: 'a chef', merchant: 'a merchant', teahouse: 'a teahouse owner', farmer: 'a tea master', weaver: 'a weaver' })[s.dream] || s.dream) : ''}</p></div>
+          <h3>${esc(s.name)}, ${s.age}</h3>${s.zi ? `<p class="courtesy">courtesy name <b>${esc(s.zi)}</b> ${esc(s.ziZh || '')}</p>` : ''}<p class="muted" style="margin:0">${M.MOOD_WORDS[mood.label]}${s.dream ? ' · dreams of being ' + esc(({ general: 'a general', swordswoman: 'a wandering hero', scholar: 'a scholar', astronomer: 'an astronomer', immortal: 'an immortal', physician: 'a physician', musician: 'a musician', dancer: 'a dancer', poet: 'a poet', princess: 'a princess', priestess: 'an abbess', teacher: 'a teacher', chef: 'a chef', merchant: 'a merchant', teahouse: 'a teahouse owner', farmer: 'a tea master', weaver: 'a weaver' })[s.dream] || s.dream) : ''}</p></div>
         <div class="box"><h3>Growth</h3>${stats}</div>
         <div class="box"><h3>Her heart</h3>
           <div class="need"><span>Bond</span><span class="bar"><i style="width:${s.bond}%;--c:#e46a78"></i></span></div>
