@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const ROOT = path.join(__dirname, '..', 'src', 'js');
-const files = ['core.js', 'data.js', 'npcs.js', 'mind.js', 'sim.js', 'endings.js', 'events.js', 'events2.js', 'town.js', 'talk.js'];
+const files = ['core.js', 'data.js', 'npcs.js', 'mind.js', 'sim.js', 'endings.js', 'events.js', 'events2.js', 'town.js', 'chatter.js', 'talk.js'];
 const sandbox = { window: {}, console, setTimeout, clearTimeout, Math, JSON, Date, CSS: { escape: (x) => x } };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
@@ -87,6 +87,9 @@ async function game(policy) {
     const v = G.Town.pickVisitor(s);
     if (v) for (const [, t] of v.lines) if (!t || /\{\w+\}|undefined|\[object/.test(t)) throw new Error('bad visit line: ' + v.id + ' ' + t);
     if (v) visitors[v.id] = (visitors[v.id] || 0) + 1;
+    // her everyday voice must come out clean too
+    const said = [G.Chatter.planner(s), G.Chatter.tap(s).text, G.Chatter.tap(s).text, G.Chatter.idle(s, U.pick(['sword', 'read', 'sit', 'kite', 'stars', 'cook'])) || 'ok'];
+    for (const t of said) if (!t || /\{\w+\}|undefined|\[object/.test(t)) throw new Error('bad chatter: ' + t);
     s.phase = 'run';
     s.focus = policy === 'harsh' ? 'work' : policy === 'caring' ? 'family' : U.pick(['balanced', 'balanced', 'work', 'family']);
     const talks = s.focus === 'family' ? 2 : 1;

@@ -574,7 +574,7 @@
     const short = Sim.shortfall(s, P.acts);
     const income = D.PARENTS[s.parent.bg].income + (s.focus === 'work' ? 90 : s.focus === 'family' ? -40 : 0);
     const full = P.acts.every((x) => x);
-    const wishText = wish ? wish.text : M.pick(s, { _: 'I\'m happy with whatever you plan, ' + M.addr(s) + '!', sassy: 'Surprise me. But not with etiquette.', soft: 'Whatever you think is best...', dreamy: 'I wonder what this season will bring.', earnest: 'I\'m ready to work hard this season.' });
+    const wishText = wish ? wish.text : G.Chatter.planner(s);
     root.innerHTML = `
       <div class="plan-head"><h3>Plans for ${D.SEASON_NAME[sea]}</h3><span class="gold">${icon('coin')}${s.gold}</span></div>
       <div class="wish"><canvas id="wish-port" width="64" height="64"></canvas><p>“${esc(wishText)}”<span class="mood">${esc(s.name)} feels ${M.MOOD_WORDS[mood.label].toLowerCase()}${s.stress >= 70 ? ' and exhausted' : ''}.</span></p></div>
@@ -692,43 +692,10 @@
     }, 1400);
   }
   function idleLine(what) {
-    const P = M.addr(s);
-    const L = {
-      sword: ['Hyah! Hyah!', 'One more form...'],
-      read: ['Hmm, hmm...', '"The superior person..." wait, what?'],
-      guqin: ['♪ ~', '♪ ♪'],
-      cook: ['Smells good!', 'Just a pinch more salt...'],
-      dance: ['♪ Turn, turn, step ~', 'La la la ~'],
-      stars: ['I think I see my star.'],
-      pray: ['...'],
-      sleep: ['Zzz...'],
-      sit: [M.mood(s).label === 'low' ? '...' : 'What a nice day.'],
-      cry: ['(sniff)'],
-      kite: ['Higher! Higher!'],
-      cheer: ['Hehe!'],
-      love: ['♥'],
-      idle: [],
-    };
-    const arr = L[what] || [];
-    // what's on her mind: something that happened recently
-    const recent = s.memories.filter((m) => m.turn >= s.turn - 2 && m.weight >= 5 && m.text && !/^[A-Z]/.test(m.text));
-    if (recent.length && Math.random() < 0.18) {
-      const m = U.pick(recent);
-      return m.val < 0 ? M.pick(s, { _: '...I\'m still thinking about ' + m.text + '.', sassy: 'Not that I\'m still mad about ' + m.text + '. I\'m not. Totally not.' }) : M.pick(s, { _: 'Hehe... ' + m.text + '...', soft: '(She smiles to herself, thinking about ' + m.text + '.)', dreamy: 'I keep replaying ' + m.text + ' in my head.' });
-    }
-    if (s.flags.pet && Math.random() < 0.2) return s.flags.pet + ', come back here!';
-    if (s.stress > 75 && Math.random() < 0.3) return 'So tired... ' + P + '...';
-    return arr.length ? U.pick(arr) : null;
+    return G.Chatter.idle(s, what);
   }
 
   // click on characters in the world
-  const HER_CLICK = {
-    radiant: ['Hehe! What is it?', 'Did you need me, {P}?', 'Look, look! I learned something new!'],
-    happy: ['Hm? Oh, hi {P}!', 'I\'m busy being amazing.', 'Want to hear a secret? ...Never mind!'],
-    calm: ['Mm?', 'Hi, {P}.', 'I was just thinking.'],
-    low: ['...I\'m fine.', '(She leans against you for a moment.)', 'Can you stay here a bit?'],
-    upset: ['Not now.', 'Hmph.', '(She turns away.)'],
-  };
   const NPC_LINES = {
     mei: ['Your daughter is the only person who laughs at all my jokes. Even the bad ones. Especially the bad ones.', 'Grandma says I talk too much. I say I talk exactly enough.', 'We\'re making the biggest lantern in town this year. Don\'t tell anyone. It\'s shaped like a rabbit. A huge rabbit.'],
     tao: ['G-good day! Would you like a bun? They\'re free. For you. For your family. For people.', 'My father says I fold dumplings like a poet. I don\'t know if that\'s a compliment.', 'Does she... does she ever mention the dumpling stall? No reason.'],
@@ -767,10 +734,9 @@
     if (!s || !UI.dlg.hidden) return;
     if (a.kind === 'her') {
       const m = M.mood(s).label;
-      let line = M.fill(s, U.pick(HER_CLICK[m]));
-      if (s.dream && Math.random() < 0.2) line = M.pick(s, { _: 'One day I\'ll make my dream come true. You\'ll see.' });
-      if (s.fav && Math.random() < 0.12 && s.known.fav.food) line = 'Is that ' + s.fav.food + ' I smell? No? ...Pity.';
-      UI.bubble(a, line, 2800);
+      const said = G.Chatter.tap(s);
+      UI.bubble(a, said.text, 3000);
+      if (said.learn && M.learn(s, 'fav', said.learn.key, said.learn.text)) UI.toast({ kind: 'learn', text: said.learn.text });
       s.clicks = (s.clicks || 0) + 1;
       if (s.clicks === 3 && (m === 'low' || m === 'upset')) {
         M.need(s, 'love', 4);
