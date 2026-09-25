@@ -257,13 +257,19 @@
   UI.placeHer = function (anim = 'idle', spot = 'her') {
     const s = UI.state;
     const [x, y] = UI.stage.spot(spot);
-    UI.herActor = UI.stage.add({ id: 'her', kind: 'her', x, y, anim, pal: UI.herPal(s, UI.outfitOverride), cfg: { style: s.style }, clickable: true });
+    UI.herActor = UI.stage.add({ id: 'her', kind: 'her', x, y, anim, pal: UI.herPal(s, UI.outfitOverride), cfg: UI.herCfg(s), clickable: true });
     return UI.herActor;
+  };
+  UI.herCfg = (s) => {
+    const cfg = { style: s.style };
+    const band = G.Sprites.bandFor(s.age);
+    if (band) cfg.band = band;
+    return cfg;
   };
   UI.refreshHer = function () {
     if (!UI.herActor || !UI.state) return;
     UI.herActor.pal = UI.herPal(UI.state, UI.outfitOverride);
-    UI.herActor.cfg = { style: UI.state.style };
+    UI.herActor.cfg = UI.herCfg(UI.state);
   };
   UI.herAnim = function (anim) {
     if (UI.herActor) {
@@ -285,7 +291,7 @@
     const n = G.NPC[id];
     if (!n || !n.outfit) return null;
     const [x, y] = UI.stage.spot(where);
-    const a = UI.stage.add({ id: 'npc_' + id, kind: 'npc', x, y, anim: 'idle', pal: G.Sprites.palette(n.look, n.outfit), cfg: { style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard }, clickable: true, npc: id });
+    const a = UI.stage.add({ id: 'npc_' + id, kind: 'npc', x, y, anim: 'idle', pal: G.Sprites.palette(n.look, n.outfit), cfg: G.Sprites.npcCfg(id, n, UI.state && UI.state.age), clickable: true, npc: id });
     UI.npcActors[id] = a;
     return a;
   };
@@ -376,12 +382,14 @@
     box.className = 'caption frame';
     box.innerHTML = `<div class="cap-ico">${icon(res.hobby ? 'sparkle' : A.icon)}</div><div><div class="cap-when">${esc(when)}${res.chosen ? ' · her choice' : ''}${res.forced ? ' · she didn\'t want to' : ''}</div><div class="cap-title">${esc(title)}${outcome}</div><p class="cap-text">${esc(res.text || '')}</p><div class="cap-gains">${gains.join('')}</div></div>`;
     box.hidden = false;
+    $('.stage-wrap').classList.add('capping');
     return new Promise((r) => {
       let done = false;
       const fin = () => {
         if (done) return;
         done = true;
         box.hidden = true;
+        $('.stage-wrap').classList.remove('capping');
         box.onclick = null;
         r();
       };
@@ -504,19 +512,21 @@
     const bg = G.World.paintScene(p.scene, { season: p.season || 'spring', tod: p.tod || 'day', items: {}, magpies: false });
     g.drawImage(bg.canvas, 0, 0);
     const spot = (bg.info.spots && bg.info.spots.her) || [160, 150];
-    const anims = G.Sprites.build({ style: s.style });
+    // she is drawn at the size she was when the photo was taken
+    const anims = G.Sprites.build(UI.herCfg({ style: s.style, age: p.age || s.age }));
     const fr = (anims[p.anim] || anims.idle)[0];
     const pal = G.Sprites.palette(s.look, D.OUTFITS[p.outfit] || D.OUTFITS.everyday);
-    G.PX.draw(g, G.Sprites.join(fr.rows), pal, spot[0] - 8, spot[1] - 32);
+    const top = spot[1] - fr.rows.length;
+    G.PX.draw(g, G.Sprites.join(fr.rows), pal, spot[0] - 8, top);
     (fr.props || []).forEach((pr) => {
       const ps = G.Sprites.PROPS[pr.name];
-      if (ps) G.PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, spot[0] - 8 + pr.x, spot[1] - 32 + pr.y);
+      if (ps) G.PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, spot[0] - 8 + pr.x, top + pr.y);
     });
     (p.npcs || []).forEach((id, i) => {
       const n = G.NPC[id];
       if (!n || !n.outfit) return;
-      const a = G.Sprites.build({ style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard }).idle[0];
-      G.PX.draw(g, G.Sprites.join(a.rows), G.Sprites.palette(n.look, n.outfit), spot[0] + 20 + i * 18, spot[1] - 32, true);
+      const a = G.Sprites.build(G.Sprites.npcCfg(id, n, p.age || s.age)).idle[0];
+      G.PX.draw(g, G.Sprites.join(a.rows), G.Sprites.palette(n.look, n.outfit), spot[0] + 20 + i * 18, spot[1] - a.rows.length, true);
     });
     if (p.tod === 'night') {
       g.fillStyle = 'rgba(18,22,62,0.35)';

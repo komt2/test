@@ -140,7 +140,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
 /* ---------------- game layout */
 .game-screen { padding: 8px 12px 10px; gap: 8px; }
 .hud { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 10px; }
-.hud .when { font-family: var(--font-display); font-size: 1.05rem; color: var(--gold-l); display: flex; align-items: center; gap: 8px; }
+.hud .when { font-family: var(--font-display); font-size: 1.05rem; color: var(--gold-l); display: flex; align-items: center; gap: 8px; word-spacing: 0.3em; }
 .hud .when .zh { font-family: var(--font); background: var(--red); color: #fff4dc; border: 2px solid #080a1c; width: 28px; height: 28px; display: grid; place-items: center; font-size: 1rem; }
 .hud .who { color: #e9e4ff; }
 .hud .spacer { flex: 1; }
@@ -184,7 +184,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
 @keyframes toast { 0% { opacity: 0; transform: translateY(-6px); } 8% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
 .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--paper); color: var(--text); border: 3px solid var(--ink); padding: 4px 10px; font-size: 0.85rem; max-width: 60%; width: max-content; z-index: 4; pointer-events: none; box-shadow: 0 3px 0 var(--ink); }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -9px; width: 10px; height: 6px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 50% 100%); transform: translateX(-50%); }
-.caption { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 4; padding: 8px 14px; display: flex; gap: 12px; align-items: flex-start; animation: rise 240ms steps(4); }
+/* the month caption sits up in the sky so she stays visible doing the activity */
+.caption { position: absolute; top: 10px; right: 10px; left: auto; width: min(60%, 560px); z-index: 4; padding: 8px 14px; display: flex; gap: 12px; align-items: flex-start; animation: rise 240ms steps(4); }
+.stage-wrap.capping #toasts { right: calc(min(60%, 560px) + 18px); }
 @keyframes rise { from { transform: translateY(14px); opacity: 0; } }
 .caption .cap-ico { width: 40px; height: 40px; flex: none; display: grid; place-items: center; background: var(--red); color: #fff4dc; border: 3px solid var(--ink); }
 .caption .cap-ico .ic { width: 26px; height: 26px; }
@@ -374,19 +376,25 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
   body { overflow: auto; }
   .game-screen { padding: 6px 10px 12px; }
   .play { grid-template-columns: 1fr; overflow: visible; align-content: start; }
-  .hud { gap: 4px 10px; padding: 2px 6px; }
+  .hud { gap: 4px 7px; padding: 2px 6px; }
   .hud .who { font-size: 0.85rem; }
   .hud .spacer { display: none; }
   .hud-btn { font-size: 0; padding: 4px; }
   .hud-btn .ic { font-size: 18px; width: 20px; height: 20px; }
-  .stage-wrap { width: 100%; aspect-ratio: 4 / 3; }
+  .game-screen, .play { flex: none; }
+  .stage-col { min-height: auto; }
+  .stage-wrap { width: 100%; aspect-ratio: 4 / 3; flex: none; }
   .stage-wrap canvas { object-fit: cover; }
   .dialogue { flex: none; overflow: visible; display: grid; grid-template-columns: auto 1fr; margin-top: 8px; }
   .dlg-portrait canvas, .dlg-seal { width: 88px; height: 88px; font-size: 2.4rem; }
+  .caption { left: 6px; right: 6px; top: 6px; width: auto; padding: 6px 10px; gap: 8px; }
+  .caption .cap-ico { width: 30px; height: 30px; }
+  .caption .cap-text { font-size: 0.85rem; }
+  .stage-wrap.capping #toasts { opacity: 0; }
   .planner { overflow: visible; flex: none; }
   .planner .acts { overflow: visible; flex: none; min-height: 0; }
   .status { width: 100%; grid-template-columns: 1fr; display: grid; }
-  .hud .meter .bar { width: 44px; }
+  .hud .meter .bar { width: 34px; }
   .look-layout { grid-template-columns: 1fr; }
   .ending-hero { grid-template-columns: 1fr; }
   .ending-hero .port { width: 112px; height: 112px; justify-self: center; }
@@ -1820,12 +1828,38 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
   const sitting = (rows) => {
     // fold the skirt: drop the legs, spread the hem
     const top = rows.slice(0, 26);
-    return ['.'.repeat(16), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16)].concat(top.slice(0, 22)).concat([
+    const out = ['.'.repeat(16), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16)].concat(top.slice(0, 22)).concat([
       '..oKKKKKKKKKKo..',
       '.oKKKkKKKKkKKKo.',
       'oKKKKKKKKKKKKKKo',
       'oooooooooooooooo',
     ].map((r) => r)).concat(['.'.repeat(16), '.'.repeat(16)]).slice(0, 32);
+    out.sitting = true;
+    return out;
+  };
+
+  // younger bodies: the same head over fewer torso and skirt rows, so she visibly grows up.
+  // standing: kid 28 rows, teen 30, grown 32. Sitting frames keep a 4px drop below standing.
+  const SHRINK = { kid: { stand: [19, 25, 26, 27], sit: [23, 27, 30, 31] }, teen: { stand: [26, 27], sit: [30, 31] } };
+  function shrink(anims, band) {
+    const S = SHRINK[band];
+    Object.values(anims).forEach((frames) =>
+      frames.forEach((f) => {
+        const del = f.rows.sitting ? S.sit : S.stand;
+        f.rows = f.rows.filter((_, i) => !del.includes(i));
+        if (f.props) f.props = f.props.map((p) => Object.assign({}, p, { y: p.y - del.filter((d) => d < p.y).length }));
+      })
+    );
+    return anims;
+  }
+  SP.bandFor = (age) => (age <= 12 ? 'kid' : age <= 15 ? 'teen' : undefined);
+  // townsfolk: her friends grow up alongside her; the lane boy stays little
+  const PEERS = ['mei', 'tao', 'wanyin', 'prince'];
+  SP.npcCfg = function (id, n, herAge) {
+    const cfg = { style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard };
+    const band = id === 'kid' ? 'kid' : PEERS.includes(id) && herAge ? SP.bandFor(herAge) : undefined;
+    if (band) cfg.band = band;
+    return cfg;
   };
 
   const buildCache = new Map();
@@ -1905,6 +1939,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
       cry: A([{ rows: withArms(FB, 'pray'), props: [{ name: 'drop', x: 3, y: 12 }] }, { rows: withArms(FB, 'pray'), dy: 1, props: [{ name: 'drop', x: 3, y: 14 }] }]),
       love: A([{ rows: F, props: [{ name: 'heart', x: 12, y: -2 }] }, { rows: F, dy: 1, props: [{ name: 'heart', x: 12, y: -4 }] }]),
     };
+    if (SHRINK[cfg.band]) shrink(anims, cfg.band);
     buildCache.set(key, anims);
     return anims;
   };
@@ -6021,7 +6056,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
     const alive = () => ui.herActor === her && st.get('visitor');
     const fromLeft = her.x > 150;
     const y = Math.max(140, Math.min(164, her.y + 2));
-    const a = st.add({ id: 'visitor', kind: 'npc', x: fromLeft ? -12 : 332, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: { style: npc.style, male: npc.body === 'man' || npc.body === 'boy', beard: npc.beard }, clickable: true, npc: visit.id, speed: 0.55 });
+    const a = st.add({ id: 'visitor', kind: 'npc', x: fromLeft ? -12 : 332, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: G.Sprites.npcCfg(visit.id, npc, s.age), clickable: true, npc: visit.id, speed: 0.55 });
     st.stopWalk(her);
     await st.walkTo(a, her.x + (fromLeft ? -22 : 22), y);
     if (!alive()) return;
@@ -7451,13 +7486,19 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
   UI.placeHer = function (anim = 'idle', spot = 'her') {
     const s = UI.state;
     const [x, y] = UI.stage.spot(spot);
-    UI.herActor = UI.stage.add({ id: 'her', kind: 'her', x, y, anim, pal: UI.herPal(s, UI.outfitOverride), cfg: { style: s.style }, clickable: true });
+    UI.herActor = UI.stage.add({ id: 'her', kind: 'her', x, y, anim, pal: UI.herPal(s, UI.outfitOverride), cfg: UI.herCfg(s), clickable: true });
     return UI.herActor;
+  };
+  UI.herCfg = (s) => {
+    const cfg = { style: s.style };
+    const band = G.Sprites.bandFor(s.age);
+    if (band) cfg.band = band;
+    return cfg;
   };
   UI.refreshHer = function () {
     if (!UI.herActor || !UI.state) return;
     UI.herActor.pal = UI.herPal(UI.state, UI.outfitOverride);
-    UI.herActor.cfg = { style: UI.state.style };
+    UI.herActor.cfg = UI.herCfg(UI.state);
   };
   UI.herAnim = function (anim) {
     if (UI.herActor) {
@@ -7479,7 +7520,7 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
     const n = G.NPC[id];
     if (!n || !n.outfit) return null;
     const [x, y] = UI.stage.spot(where);
-    const a = UI.stage.add({ id: 'npc_' + id, kind: 'npc', x, y, anim: 'idle', pal: G.Sprites.palette(n.look, n.outfit), cfg: { style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard }, clickable: true, npc: id });
+    const a = UI.stage.add({ id: 'npc_' + id, kind: 'npc', x, y, anim: 'idle', pal: G.Sprites.palette(n.look, n.outfit), cfg: G.Sprites.npcCfg(id, n, UI.state && UI.state.age), clickable: true, npc: id });
     UI.npcActors[id] = a;
     return a;
   };
@@ -7570,12 +7611,14 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
     box.className = 'caption frame';
     box.innerHTML = `<div class="cap-ico">${icon(res.hobby ? 'sparkle' : A.icon)}</div><div><div class="cap-when">${esc(when)}${res.chosen ? ' · her choice' : ''}${res.forced ? ' · she didn\'t want to' : ''}</div><div class="cap-title">${esc(title)}${outcome}</div><p class="cap-text">${esc(res.text || '')}</p><div class="cap-gains">${gains.join('')}</div></div>`;
     box.hidden = false;
+    $('.stage-wrap').classList.add('capping');
     return new Promise((r) => {
       let done = false;
       const fin = () => {
         if (done) return;
         done = true;
         box.hidden = true;
+        $('.stage-wrap').classList.remove('capping');
         box.onclick = null;
         r();
       };
@@ -7698,19 +7741,21 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
     const bg = G.World.paintScene(p.scene, { season: p.season || 'spring', tod: p.tod || 'day', items: {}, magpies: false });
     g.drawImage(bg.canvas, 0, 0);
     const spot = (bg.info.spots && bg.info.spots.her) || [160, 150];
-    const anims = G.Sprites.build({ style: s.style });
+    // she is drawn at the size she was when the photo was taken
+    const anims = G.Sprites.build(UI.herCfg({ style: s.style, age: p.age || s.age }));
     const fr = (anims[p.anim] || anims.idle)[0];
     const pal = G.Sprites.palette(s.look, D.OUTFITS[p.outfit] || D.OUTFITS.everyday);
-    G.PX.draw(g, G.Sprites.join(fr.rows), pal, spot[0] - 8, spot[1] - 32);
+    const top = spot[1] - fr.rows.length;
+    G.PX.draw(g, G.Sprites.join(fr.rows), pal, spot[0] - 8, top);
     (fr.props || []).forEach((pr) => {
       const ps = G.Sprites.PROPS[pr.name];
-      if (ps) G.PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, spot[0] - 8 + pr.x, spot[1] - 32 + pr.y);
+      if (ps) G.PX.draw(g, ps.join('\n'), G.Sprites.PROP_PAL, spot[0] - 8 + pr.x, top + pr.y);
     });
     (p.npcs || []).forEach((id, i) => {
       const n = G.NPC[id];
       if (!n || !n.outfit) return;
-      const a = G.Sprites.build({ style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard }).idle[0];
-      G.PX.draw(g, G.Sprites.join(a.rows), G.Sprites.palette(n.look, n.outfit), spot[0] + 20 + i * 18, spot[1] - 32, true);
+      const a = G.Sprites.build(G.Sprites.npcCfg(id, n, p.age || s.age)).idle[0];
+      G.PX.draw(g, G.Sprites.join(a.rows), G.Sprites.palette(n.look, n.outfit), spot[0] + 20 + i * 18, spot[1] - a.rows.length, true);
     });
     if (p.tod === 'night') {
       g.fillStyle = 'rgba(18,22,62,0.35)';
@@ -7946,10 +7991,10 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
     if (lp) {
       lp.getContext('2d').drawImage(G.Portrait.render({ hair: st.look.hair, eyes: st.look.eyes, skin: st.look.skin, style: st.look.style, age: D.LENGTHS[st.length].startAge, expr: 'happy', outfit: D.OUTFITS.everyday, outfitKey: 'everyday' }), 0, 0);
       const sp = $('#lp-sprite');
-      const fr = G.Sprites.build({ style: st.look.style }).idle[0];
+      const fr = G.Sprites.build(UI.herCfg({ style: st.look.style, age: D.LENGTHS[st.length].startAge })).idle[0];
       const g = sp.getContext('2d');
       g.clearRect(0, 0, 16, 32);
-      G.PX.draw(g, G.Sprites.join(fr.rows), G.Sprites.palette(st.look, D.OUTFITS.everyday), 0, 0);
+      G.PX.draw(g, G.Sprites.join(fr.rows), G.Sprites.palette(st.look, D.OUTFITS.everyday), 0, 32 - fr.rows.length);
     }
     const codeIn = $('#code-in');
     if (codeIn) codeIn.oninput = () => (st.code = codeIn.value);
@@ -8353,8 +8398,8 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
       root.querySelectorAll('[data-w]').forEach((b) => {
         const k = b.dataset.w;
         const c = b.querySelector('canvas');
-        const fr = G.Sprites.build({ style: s.style }).idle[0];
-        G.PX.draw(c.getContext('2d'), G.Sprites.join(fr.rows), G.Sprites.palette(s.look, D.OUTFITS[k]), 0, 0);
+        const fr = G.Sprites.build(UI.herCfg(s)).idle[0];
+        G.PX.draw(c.getContext('2d'), G.Sprites.join(fr.rows), G.Sprites.palette(s.look, D.OUTFITS[k]), 0, 32 - fr.rows.length);
         b.onclick = () => {
           const O = D.OUTFITS[k];
           if (!s.wardrobe.includes(k)) {
@@ -8468,7 +8513,7 @@ Write 120 to 190 words in her own voice (personality: ${traitWords(s)}), warm an
       if (!npc || !npc.outfit || UI.npcActors[id]) continue;
       const fromLeft = Math.random() < 0.5;
       const y = 150 + Math.random() * 20;
-      const a = st.add({ id: 'walker_' + id + i, kind: 'npc', x: fromLeft ? -10 : 330, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: { style: npc.style, male: npc.body === 'man' || npc.body === 'boy', beard: npc.beard }, clickable: true, npc: id, speed: 0.35 + Math.random() * 0.2 });
+      const a = st.add({ id: 'walker_' + id + i, kind: 'npc', x: fromLeft ? -10 : 330, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: G.Sprites.npcCfg(id, npc, s.age), clickable: true, npc: id, speed: 0.35 + Math.random() * 0.2 });
       UI.npcActors['walker' + i] = a;
       st.walkTo(a, fromLeft ? 340 : -20, y).then(() => st.remove(a.id));
     }

@@ -253,7 +253,7 @@
     const alive = () => ui.herActor === her && st.get('visitor');
     const fromLeft = her.x > 150;
     const y = Math.max(140, Math.min(164, her.y + 2));
-    const a = st.add({ id: 'visitor', kind: 'npc', x: fromLeft ? -12 : 332, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: { style: npc.style, male: npc.body === 'man' || npc.body === 'boy', beard: npc.beard }, clickable: true, npc: visit.id, speed: 0.55 });
+    const a = st.add({ id: 'visitor', kind: 'npc', x: fromLeft ? -12 : 332, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: G.Sprites.npcCfg(visit.id, npc, s.age), clickable: true, npc: visit.id, speed: 0.55 });
     st.stopWalk(her);
     await st.walkTo(a, her.x + (fromLeft ? -22 : 22), y);
     if (!alive()) return;

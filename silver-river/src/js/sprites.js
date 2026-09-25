@@ -401,12 +401,38 @@
   const sitting = (rows) => {
     // fold the skirt: drop the legs, spread the hem
     const top = rows.slice(0, 26);
-    return ['.'.repeat(16), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16)].concat(top.slice(0, 22)).concat([
+    const out = ['.'.repeat(16), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16)].concat(top.slice(0, 22)).concat([
       '..oKKKKKKKKKKo..',
       '.oKKKkKKKKkKKKo.',
       'oKKKKKKKKKKKKKKo',
       'oooooooooooooooo',
     ].map((r) => r)).concat(['.'.repeat(16), '.'.repeat(16)]).slice(0, 32);
+    out.sitting = true;
+    return out;
+  };
+
+  // younger bodies: the same head over fewer torso and skirt rows, so she visibly grows up.
+  // standing: kid 28 rows, teen 30, grown 32. Sitting frames keep a 4px drop below standing.
+  const SHRINK = { kid: { stand: [19, 25, 26, 27], sit: [23, 27, 30, 31] }, teen: { stand: [26, 27], sit: [30, 31] } };
+  function shrink(anims, band) {
+    const S = SHRINK[band];
+    Object.values(anims).forEach((frames) =>
+      frames.forEach((f) => {
+        const del = f.rows.sitting ? S.sit : S.stand;
+        f.rows = f.rows.filter((_, i) => !del.includes(i));
+        if (f.props) f.props = f.props.map((p) => Object.assign({}, p, { y: p.y - del.filter((d) => d < p.y).length }));
+      })
+    );
+    return anims;
+  }
+  SP.bandFor = (age) => (age <= 12 ? 'kid' : age <= 15 ? 'teen' : undefined);
+  // townsfolk: her friends grow up alongside her; the lane boy stays little
+  const PEERS = ['mei', 'tao', 'wanyin', 'prince'];
+  SP.npcCfg = function (id, n, herAge) {
+    const cfg = { style: n.style, male: n.body === 'man' || n.body === 'boy', beard: n.beard };
+    const band = id === 'kid' ? 'kid' : PEERS.includes(id) && herAge ? SP.bandFor(herAge) : undefined;
+    if (band) cfg.band = band;
+    return cfg;
   };
 
   const buildCache = new Map();
@@ -486,6 +512,7 @@
       cry: A([{ rows: withArms(FB, 'pray'), props: [{ name: 'drop', x: 3, y: 12 }] }, { rows: withArms(FB, 'pray'), dy: 1, props: [{ name: 'drop', x: 3, y: 14 }] }]),
       love: A([{ rows: F, props: [{ name: 'heart', x: 12, y: -2 }] }, { rows: F, dy: 1, props: [{ name: 'heart', x: 12, y: -4 }] }]),
     };
+    if (SHRINK[cfg.band]) shrink(anims, cfg.band);
     buildCache.set(key, anims);
     return anims;
   };

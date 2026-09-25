@@ -130,7 +130,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
 /* ---------------- game layout */
 .game-screen { padding: 8px 12px 10px; gap: 8px; }
 .hud { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 10px; }
-.hud .when { font-family: var(--font-display); font-size: 1.05rem; color: var(--gold-l); display: flex; align-items: center; gap: 8px; }
+.hud .when { font-family: var(--font-display); font-size: 1.05rem; color: var(--gold-l); display: flex; align-items: center; gap: 8px; word-spacing: 0.3em; }
 .hud .when .zh { font-family: var(--font); background: var(--red); color: #fff4dc; border: 2px solid #080a1c; width: 28px; height: 28px; display: grid; place-items: center; font-size: 1rem; }
 .hud .who { color: #e9e4ff; }
 .hud .spacer { flex: 1; }
@@ -174,7 +174,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
 @keyframes toast { 0% { opacity: 0; transform: translateY(-6px); } 8% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
 .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--paper); color: var(--text); border: 3px solid var(--ink); padding: 4px 10px; font-size: 0.85rem; max-width: 60%; width: max-content; z-index: 4; pointer-events: none; box-shadow: 0 3px 0 var(--ink); }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -9px; width: 10px; height: 6px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 50% 100%); transform: translateX(-50%); }
-.caption { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 4; padding: 8px 14px; display: flex; gap: 12px; align-items: flex-start; animation: rise 240ms steps(4); }
+/* the month caption sits up in the sky so she stays visible doing the activity */
+.caption { position: absolute; top: 10px; right: 10px; left: auto; width: min(60%, 560px); z-index: 4; padding: 8px 14px; display: flex; gap: 12px; align-items: flex-start; animation: rise 240ms steps(4); }
+.stage-wrap.capping #toasts { right: calc(min(60%, 560px) + 18px); }
 @keyframes rise { from { transform: translateY(14px); opacity: 0; } }
 .caption .cap-ico { width: 40px; height: 40px; flex: none; display: grid; place-items: center; background: var(--red); color: #fff4dc; border: 3px solid var(--ink); }
 .caption .cap-ico .ic { width: 26px; height: 26px; }
@@ -364,19 +366,25 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; 
   body { overflow: auto; }
   .game-screen { padding: 6px 10px 12px; }
   .play { grid-template-columns: 1fr; overflow: visible; align-content: start; }
-  .hud { gap: 4px 10px; padding: 2px 6px; }
+  .hud { gap: 4px 7px; padding: 2px 6px; }
   .hud .who { font-size: 0.85rem; }
   .hud .spacer { display: none; }
   .hud-btn { font-size: 0; padding: 4px; }
   .hud-btn .ic { font-size: 18px; width: 20px; height: 20px; }
-  .stage-wrap { width: 100%; aspect-ratio: 4 / 3; }
+  .game-screen, .play { flex: none; }
+  .stage-col { min-height: auto; }
+  .stage-wrap { width: 100%; aspect-ratio: 4 / 3; flex: none; }
   .stage-wrap canvas { object-fit: cover; }
   .dialogue { flex: none; overflow: visible; display: grid; grid-template-columns: auto 1fr; margin-top: 8px; }
   .dlg-portrait canvas, .dlg-seal { width: 88px; height: 88px; font-size: 2.4rem; }
+  .caption { left: 6px; right: 6px; top: 6px; width: auto; padding: 6px 10px; gap: 8px; }
+  .caption .cap-ico { width: 30px; height: 30px; }
+  .caption .cap-text { font-size: 0.85rem; }
+  .stage-wrap.capping #toasts { opacity: 0; }
   .planner { overflow: visible; flex: none; }
   .planner .acts { overflow: visible; flex: none; min-height: 0; }
   .status { width: 100%; grid-template-columns: 1fr; display: grid; }
-  .hud .meter .bar { width: 44px; }
+  .hud .meter .bar { width: 34px; }
   .look-layout { grid-template-columns: 1fr; }
   .ending-hero { grid-template-columns: 1fr; }
   .ending-hero .port { width: 112px; height: 112px; justify-self: center; }

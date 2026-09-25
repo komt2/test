@@ -203,10 +203,10 @@
     if (lp) {
       lp.getContext('2d').drawImage(G.Portrait.render({ hair: st.look.hair, eyes: st.look.eyes, skin: st.look.skin, style: st.look.style, age: D.LENGTHS[st.length].startAge, expr: 'happy', outfit: D.OUTFITS.everyday, outfitKey: 'everyday' }), 0, 0);
       const sp = $('#lp-sprite');
-      const fr = G.Sprites.build({ style: st.look.style }).idle[0];
+      const fr = G.Sprites.build(UI.herCfg({ style: st.look.style, age: D.LENGTHS[st.length].startAge })).idle[0];
       const g = sp.getContext('2d');
       g.clearRect(0, 0, 16, 32);
-      G.PX.draw(g, G.Sprites.join(fr.rows), G.Sprites.palette(st.look, D.OUTFITS.everyday), 0, 0);
+      G.PX.draw(g, G.Sprites.join(fr.rows), G.Sprites.palette(st.look, D.OUTFITS.everyday), 0, 32 - fr.rows.length);
     }
     const codeIn = $('#code-in');
     if (codeIn) codeIn.oninput = () => (st.code = codeIn.value);
@@ -610,8 +610,8 @@
       root.querySelectorAll('[data-w]').forEach((b) => {
         const k = b.dataset.w;
         const c = b.querySelector('canvas');
-        const fr = G.Sprites.build({ style: s.style }).idle[0];
-        G.PX.draw(c.getContext('2d'), G.Sprites.join(fr.rows), G.Sprites.palette(s.look, D.OUTFITS[k]), 0, 0);
+        const fr = G.Sprites.build(UI.herCfg(s)).idle[0];
+        G.PX.draw(c.getContext('2d'), G.Sprites.join(fr.rows), G.Sprites.palette(s.look, D.OUTFITS[k]), 0, 32 - fr.rows.length);
         b.onclick = () => {
           const O = D.OUTFITS[k];
           if (!s.wardrobe.includes(k)) {
@@ -725,7 +725,7 @@
       if (!npc || !npc.outfit || UI.npcActors[id]) continue;
       const fromLeft = Math.random() < 0.5;
       const y = 150 + Math.random() * 20;
-      const a = st.add({ id: 'walker_' + id + i, kind: 'npc', x: fromLeft ? -10 : 330, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: { style: npc.style, male: npc.body === 'man' || npc.body === 'boy', beard: npc.beard }, clickable: true, npc: id, speed: 0.35 + Math.random() * 0.2 });
+      const a = st.add({ id: 'walker_' + id + i, kind: 'npc', x: fromLeft ? -10 : 330, y, anim: 'idle', pal: G.Sprites.palette(npc.look, npc.outfit), cfg: G.Sprites.npcCfg(id, npc, s.age), clickable: true, npc: id, speed: 0.35 + Math.random() * 0.2 });
       UI.npcActors['walker' + i] = a;
       st.walkTo(a, fromLeft ? 340 : -20, y).then(() => st.remove(a.id));
     }
